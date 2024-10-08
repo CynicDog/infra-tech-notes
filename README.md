@@ -1,5 +1,5 @@
 <details>
-<summary><h1>Core-Kubernetes-Notes</h1></summary>
+<summary><h1>Core Kubernetes by Jay Vyas and Chris Love</h1></summary>
   
 <details>
 <summary><h2>Chapter 1. Why Kubernetes exists</h2></summary>
