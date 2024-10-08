@@ -33,7 +33,7 @@ Containers provide a layer of isolation that eliminates the need to manage libra
 
 ### Core foundation of Kubernetes 
 
-When the nodes in the cluster respond to ongoing events and update their Node objects through the kubelet's communication with the API server, things can go wrong at any time. So we refer to Kubernetes as an **eventually consistent system**, where reconciliation of the desired state over time is a key design philosophy.
+When the nodes in the cluster respond to ongoing events and update their Node objects through the kubelet's communication with the API server, things can go wrong at any time. So we refer to Kubernetes as an **<ins>eventually consistent system</ins>**, where reconciliation of the desired state over time is a key design philosophy.
 
 Kubernetes automates the technology stack using the Kubernetes API, managed entirely as YAML and JSON resources. This includes traditional IT infrastructure rules that still apply to microservices, such as:
 
