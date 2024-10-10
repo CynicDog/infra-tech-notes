@@ -80,9 +80,75 @@ Kubernetes is a state-reconciliation machine with various control loops.
 - Kubernetes control plane = The mothership of Kubernetes which covers the API server, schedulers controller manager and other controllers. 
 
 Virtually everything in Kubernetes exists to support Pods. There are 70 different API types, you can view those by running: 
-```bash
-kubectl api-resources 
-```
+<details>
+  <summary>
+    <code><br>kubectl api-resources<br></code>
+  </summary>
+  <br>
+
+  ```bash
+  NAME                                SHORTNAMES   APIVERSION                        NAMESPACED   KIND
+  bindings                                         v1                                true         Binding
+  componentstatuses                   cs           v1                                false        ComponentStatus
+  configmaps                          cm           v1                                true         ConfigMap
+  endpoints                           ep           v1                                true         Endpoints
+  events                              ev           v1                                true         Event
+  limitranges                         limits       v1                                true         LimitRange
+  namespaces                          ns           v1                                false        Namespace
+  nodes                               no           v1                                false        Node
+  persistentvolumeclaims              pvc          v1                                true         PersistentVolumeClaim
+  persistentvolumes                   pv           v1                                false        PersistentVolume
+  pods                                po           v1                                true         Pod
+  podtemplates                                     v1                                true         PodTemplate
+  replicationcontrollers              rc           v1                                true         ReplicationController
+  resourcequotas                      quota        v1                                true         ResourceQuota
+  secrets                                          v1                                true         Secret
+  serviceaccounts                     sa           v1                                true         ServiceAccount
+  services                            svc          v1                                true         Service
+  mutatingwebhookconfigurations                    admissionregistration.k8s.io/v1   false        MutatingWebhookConfiguration
+  validatingadmissionpolicies                      admissionregistration.k8s.io/v1   false        ValidatingAdmissionPolicy
+  validatingadmissionpolicybindings                admissionregistration.k8s.io/v1   false        ValidatingAdmissionPolicyBinding
+  validatingwebhookconfigurations                  admissionregistration.k8s.io/v1   false        ValidatingWebhookConfiguration
+  customresourcedefinitions           crd,crds     apiextensions.k8s.io/v1           false        CustomResourceDefinition
+  apiservices                                      apiregistration.k8s.io/v1         false        APIService
+  controllerrevisions                              apps/v1                           true         ControllerRevision
+  daemonsets                          ds           apps/v1                           true         DaemonSet
+  deployments                         deploy       apps/v1                           true         Deployment
+  replicasets                         rs           apps/v1                           true         ReplicaSet
+  statefulsets                        sts          apps/v1                           true         StatefulSet
+  selfsubjectreviews                               authentication.k8s.io/v1          false        SelfSubjectReview
+  tokenreviews                                     authentication.k8s.io/v1          false        TokenReview
+  localsubjectaccessreviews                        authorization.k8s.io/v1           true         LocalSubjectAccessReview
+  selfsubjectaccessreviews                         authorization.k8s.io/v1           false        SelfSubjectAccessReview
+  selfsubjectrulesreviews                          authorization.k8s.io/v1           false        SelfSubjectRulesReview
+  subjectaccessreviews                             authorization.k8s.io/v1           false        SubjectAccessReview
+  horizontalpodautoscalers            hpa          autoscaling/v2                    true         HorizontalPodAutoscaler
+  cronjobs                            cj           batch/v1                          true         CronJob
+  jobs                                             batch/v1                          true         Job
+  certificatesigningrequests          csr          certificates.k8s.io/v1            false        CertificateSigningRequest
+  leases                                           coordination.k8s.io/v1            true         Lease
+  endpointslices                                   discovery.k8s.io/v1               true         EndpointSlice
+  events                              ev           events.k8s.io/v1                  true         Event
+  flowschemas                                      flowcontrol.apiserver.k8s.io/v1   false        FlowSchema
+  prioritylevelconfigurations                      flowcontrol.apiserver.k8s.io/v1   false        PriorityLevelConfiguration
+  ingressclasses                                   networking.k8s.io/v1              false        IngressClass
+  ingresses                           ing          networking.k8s.io/v1              true         Ingress
+  networkpolicies                     netpol       networking.k8s.io/v1              true         NetworkPolicy
+  runtimeclasses                                   node.k8s.io/v1                    false        RuntimeClass
+  poddisruptionbudgets                pdb          policy/v1                         true         PodDisruptionBudget
+  clusterrolebindings                              rbac.authorization.k8s.io/v1      false        ClusterRoleBinding
+  clusterroles                                     rbac.authorization.k8s.io/v1      false        ClusterRole
+  rolebindings                                     rbac.authorization.k8s.io/v1      true         RoleBinding
+  roles                                            rbac.authorization.k8s.io/v1      true         Role
+  priorityclasses                     pc           scheduling.k8s.io/v1              false        PriorityClass
+  csidrivers                                       storage.k8s.io/v1                 false        CSIDriver
+  csinodes                                         storage.k8s.io/v1                 false        CSINode
+  csistoragecapacities                             storage.k8s.io/v1                 true         CSIStorageCapacity
+  storageclasses                      sc           storage.k8s.io/v1                 false        StorageClass
+  volumeattachments                                storage.k8s.io/v1                 false        VolumeAttachment
+  ```
+</details>
+
 
 Several API elements we will look in details are:
 
@@ -133,21 +199,22 @@ As a unit of compute, a unit of CPU power is represented by a Kubernetes API obj
 - systemd
 - kubelet
 - network proxy (kube-proxy)
-- CNI provider
-- container runtime accessble via a CRI 
+- <ins>CNI provider</ins>
+- <ins>container runtime accessble via a CRI</ins> 
 
 Kubelet is a binary program that runs as an agent. Without it, a Kubernetes node is not schedulable or considered to be a part of a cluster. It ensures:
 - Pods on a kubelet's host operate through a control loop that monitors their assignments to nodes.
 - Since Kubernetes 1.17, the API server is updated about kubelet health via a heartbeat mechanism checked through the `kube-node-lease` namespace.
 - Garbage collection manages ephemeral storage and network devices for Pods as needed.
 
-Kubelet utilizes CRI and CNI to reconcile the state of a node with the state of the control plane. For example, when the control plane determines that NGINX will run on nodes two, three, and four of a five-node cluster, the kubelet ensures that the CRI provider pulls the container from an image registry and assigns it an IP address within the `podCIDR` range.
+<ins>Kubelet utilizes CRI and CNI to reconcile the state of a node with the state of the control plane</ins>. For example, when the control plane determines that NGINX will run on nodes two, three, and four of a five-node cluster, the kubelet ensures that the CRI provider pulls the container from an image registry and assigns it an IP address within the `podCIDR` range.
 
 Service is an API object defined by Kubernetes. The Kubernetes network proxy binary(kube-proxy) handles the creation of the ClusterIP and NodePort Services on every node. The type of Services are: 
 - ClusterIP - An internal Service that load balances Kubernetes Pods
 - NodePort - An open port on a Kubernetes node that load balances multiple Pods
 - LoadBalancer - An external Service that creates a load balancer external to the cluster
 
+A DNS system like CoreDNS provides application lookup, allowing microservices in one Pod to look up and communicate with another Pod. 
 
 ### The Node API Object
 
@@ -211,6 +278,28 @@ We can view a Kind cluster's node details by running:
   > [2] CNI IP address, which is CIDR for the Pod network. 
 
 </details>
+
+### The Kubernetes API server
+
+The Kubernetes API server, `kube-apiserver`, is an HTTP-based REST server that exposes the various API objects for a Kubernetes cluster. 
+
+The API server is the only component on the control plane that communicates with etcd, the database for Kubernetes. In essence, the API server provides a stateful interface for all operations modifying a Kubernetes cluster. 
+
+Admission controllers that run as part of the API server provide both authentication and authorization when a client communicates with the API server.
+
+### The Kubernetes scheduler 
+
+The Kubernetes scheduler, `kube-scheduler`, provides a clean, simple implementation of scheduling.
+
+The scheduler considers multiple factors in Pod scheduling. These include hardware components on a node, available CPU and memory resources, policy scheduling constraints, and other weighting factors.
+
+The scheduler also follows Pod affinity and anti-affinity rules that specify Pod scheduling and placement behavior. 
+
+### Infrastructure controllers 
+
+The API objects PersistentVolume (PV) and PersistentVolumeClaim (PVC) create the storage definitions and are brought to life by the Kubernetes controller manager (KCM) or the `kube-controller-manager` component, or cloud controller manager (CCM).
+
+When running Kubernetes on a cloud platform, Kubernetes interacts directly with the public or private cloud APIs, and the CCM executes the majority of those API calls.
 
 </details>
 
