@@ -5,7 +5,17 @@
 
 ### Kubernetes Architecture 
 
-Kubernetes is an abstraction layer that sits at the workload level on top of the raw compute primitives like VMs (or bare metal machines) and load balancers.
+Kubernetes is <ins>an abstraction layer that sits at the workload level on top of the raw compute primitives</ins> like VMs (or bare metal machines) and load balancers.
+
+VMs are referred to as nodes and are arranged into a cluster. Containers (one or multiple) are grouped into a scheduling unit known as a Pod. Networking is configured via a Service. 
+
+Worker nodes (herein referred to simply as nodes) are responsible for managing the lifecycle of containers that run, including tasks such as starting and stopping containers. The control plane will instruct the node to run a certain container, but the actual execution of the container is then the responsibility of the node.
+
+The **Pod** is used as the primary scheduling unit in Kubernetes. Encompassing your application and its containers, it’s the unit of compute that Kubernetes schedules onto nodes according to the resources you require. 
+
+A **Deployment** is a specification for the desired state of the system, which Kubernetes seeks to actuate. Kubernetes continuously reconciles the observed state to the desired state while attempting to deliver what you requested. 
+
+**Services** are how you expose an application running on a set of Pods as a network service.
 
 </details>
 </details>
@@ -61,11 +71,147 @@ These components are defined in configuration files representing objects in the 
 - Enable inspection of failed cluster-wide processes, including remote execution into any container at any time using `kubectl exec` and `kubectl describe`.
 - Allow the mounting of local or remote storage to containers and manage declarative storage volumes with the StorageClass API and PersistentVolumes.
 
-</details>
+### Kubernetes components 
 
+Kubernetes is a state-reconciliation machine with various control loops. 
+
+- Hardware infrastructure - Includes computers, network infrastructure, storage infrastructure and a container registry
+- Kubernetes worker nodes - The base unit of compoute in a Kubernetes cluster.
+- Kubernetes control plane = The mothership of Kubernetes which covers the API server, schedulers controller manager and other controllers. 
+
+Virtually everything in Kubernetes exists to support Pods. There are 70 different API types, you can view those by running: 
+```bash
+kubectl api-resources 
+```
+
+Several API elements we will look in details are:
+
+- Runtime Pods and deployments
+- API implementation details
+- Ingress Services and load balancing
+- PersistentVolumes and PersistentVolumeClaims storage
+- NetworkPolicies and network security
+
+When you experience the benefits of moving to a standardized API-driven methodology, you begin to appreciate the declarative nature of Kubernetes and its cloud-native approach to the container orchestration.
+
+</details>
 
 <details>
 <summary><h3>CH2. Why the Pod?</h3></summary>
+
+### What is a Pod? 
+
+The Pod is the smallest atomic unint that can be deployed to a Kubernetes cluster. 
+
+Many other Kubernetes API objects either use pods directly or support Pods. A Deployment object, for example, uses Pods, as well as StatefulSets and DaemonSets. Several different high-level Kubernetes controllers create and manage the life cycles of Pods. 
+
+Containerized applications running at large scale require a high level of awareness when it comes to scheduling services and managing load balancers:
+- Storage-aware scheduling - To schedule a process in concert with making its data available.  
+- Service-aware network load balancing - To send traffic to different IP addresses as containers move from one machine to another.
+
+Roughly, a Pod is one or more OCI images that run as containers on a Kubernetes cluster node. The Kubernetes node is a single piece of computing power (a server) that runs a kubelet.
+
+Pods aren’t deployed directly in most cases. Instead, they are automatically created for us by other API objects such as:
+
+- Deployments — The most commonly used API object in a Kubernetes cluster. They are the typical API object that, say, deploys a microservice.
+- Jobs — Run a Pod as a batch process.
+- StatefulSets — Host applications that require specific needs and that are often stateful applications like databases.
+- DaemonSets — Used when we want to run a single Pod as an “agent” on every node of a cluster (commonly used for system services involving networking, storage, or logging).
+
+### Linux namespaces and the Pod
+
+Linux namespaces are a Linux kernel feature that allows for process separation inside the kernel, providing the base functionality to take an image and create a running container. 
+
+The Pod, along with its foundation in Linux namespaces, enables a variety of features in Kubernetes. Within the networking namespace, there is a virtual networking stack that integrates with a software-defined networking (SDN) system covering the entire Kubernetes cluster. To meet scaling needs, load balancing across multiple Pods of the application is commonly employed. The SDN framework within a Kubernetes cluster supports this load balancing.
+
+### Kubernetes, infrastructure and the Pod 
+
+As a unit of compute, a unit of CPU power is represented by a Kubernetes API object: Node. Node requires the following infrastructure: 
+
+- Server
+- Operating System
+- systemd
+- kubelet
+- network proxy (kube-proxy)
+- CNI provider
+- container runtime accessble via a CRI 
+
+Kubelet is a binary program that runs as an agent. Without it, a Kubernetes node is not schedulable or considered to be a part of a cluster. It ensures:
+- Pods on a kubelet's host operate through a control loop that monitors their assignments to nodes.
+- Since Kubernetes 1.17, the API server is updated about kubelet health via a heartbeat mechanism checked through the `kube-node-lease` namespace.
+- Garbage collection manages ephemeral storage and network devices for Pods as needed.
+
+Kubelet utilizes CRI and CNI to reconcile the state of a node with the state of the control plane. For example, when the control plane determines that NGINX will run on nodes two, three, and four of a five-node cluster, the kubelet ensures that the CRI provider pulls the container from an image registry and assigns it an IP address within the `podCIDR` range.
+
+Service is an API object defined by Kubernetes. The Kubernetes network proxy binary(kube-proxy) handles the creation of the ClusterIP and NodePort Services on every node. The type of Services are: 
+- ClusterIP - An internal Service that load balances Kubernetes Pods
+- NodePort - An open port on a Kubernetes node that load balances multiple Pods
+- LoadBalancer - An external Service that creates a load balancer external to the cluster
+
+
+### The Node API Object
+
+We can view a Kind cluster's node details by running:
+
+<details>
+  <summary>
+    <code><br>kubectl get node/kind-control-plane -o yaml<br></code>
+  </summary>
+  <br>
+
+  ```yaml
+  apiVersion: v1
+  kind: Node
+  metadata:
+    annotations:
+      kubeadm.alpha.kubernetes.io/cri-socket: unix:///run/containerd/containerd.sock    [1]
+      node.alpha.kubernetes.io/ttl: "0"
+      volumes.kubernetes.io/controller-managed-attach-detach: "true"
+    creationTimestamp: "2024-08-12T05:13:53Z"
+    labels:
+      beta.kubernetes.io/arch: amd64
+      beta.kubernetes.io/os: linux
+      kubernetes.io/arch: amd64
+      kubernetes.io/hostname: kind-control-plane
+      kubernetes.io/os: linux
+      node-role.kubernetes.io/control-plane: ""
+    name: kind-control-plane
+    resourceVersion: "588604"
+    uid: 30eab556-6338-4784-9a51-03ae64603876
+  spec:
+    podCIDR: 10.244.0.0/24    [2] 
+    podCIDRs:
+      - 10.244.0.0/24
+    providerID: kind://docker/kind/kind-control-plane
+  status:
+    addresses:
+      - address: 172.18.0.2
+        type: InternalIP
+      - address: kind-control-plane
+        type: Hostname
+    allocatable:
+      cpu: "16"
+      ephemeral-storage: 1055762868Ki
+      hugepages-1Gi: "0"
+      hugepages-2Mi: "0"
+      memory: 8059232Ki
+      pods: "110"
+    capacity:
+      cpu: "16"
+      ephemeral-storage: 1055762868Ki
+      hugepages-1Gi: "0"
+      hugepages-2Mi: "0"
+      memory: 8059232Ki
+      pods: "110"
+
+  #...
+  ```
+  > [1] The CRI socket used. With kind (and most clusters), containerd socket is used.
+  > 
+  > [2] CNI IP address, which is CIDR for the Pod network. 
+
+</details>
+
 </details>
 
 <details>
