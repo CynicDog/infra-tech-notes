@@ -370,10 +370,18 @@ First we need to get inside the container where the control plane is running:
 kubectl exec -it  kind-control-plane /bin/bash
 ```
 
+#### Installing Essential Tools in the Kind Control Plane Container 
+--- 
+
 Because we will edit a text file in our kind cluster, let’s install the Vim editor first:  
 ```
 root@kind-control-plane:/# apt-get update -y
-root@kind-control-plane:/# apt-get install vim 
+root@kind-control-plane:/# apt-get install vim
+```
+
+Since the image of `kind-control-plane` container does not include `ip` command binary, we will install it now too:   
+```
+root@kind-control-plane:/# apt install iproute2
 ```
 
 We'll create a minimal container—a folder with just enough to run a Bash shell—using the `chroot` command. 
@@ -397,12 +405,20 @@ The purpose of chroot is to create an isolated root for a process. There are thr
   mkdir -p /home/namespace/box/lib
   mkdir -p /home/namespace/box/lib64
   mkdir -p /home/namespace/box/proc
-  
+  mkdir -p /home/namespace/box/usr/sbin
+  mkdir -p /home/namespace/box/usr/bin
+  mkdir -p /home/namespace/box/usr/share/
+  mkdir -p /home/namespace/box/etc/
+
   cp -v /usr/bin/kill /home/namespace/box/bin/
   cp -v /usr/bin/ps /home/namespace/box/bin
   cp -v /bin/bash /home/namespace/box/bin
   cp -v /bin/ls /home/namespace/box/bin
-  
+  cp -v /usr/sbin/ip /home/namespace/box/usr/sbin/
+  cp -v /usr/bin/vim /home/namespace/box/usr/bin/
+  cp -r /usr/share/vim /home/namespace/box/usr/share/
+  cp -r /etc/vim /home/namespace/box/etc/
+
   cp -r /lib/* /home/namespace/box/lib/
   cp -r /lib64/* /home/namespace/box/lib64/
   
@@ -411,6 +427,10 @@ The purpose of chroot is to create an isolated root for a process. There are thr
   chroot /home/namespace/box /bin/bash
   ```
 </details>
+
+
+#### Mounting Directories for Persistent Storage in the Chroot Environment
+---
 
 Give an execute permission to the script file and run the script: 
 ```
@@ -450,10 +470,9 @@ Now, let's list the contents in the mounted directory:
   ```
 </details>
 
-
 Running `ps -ax` will still show that our chrooted container has full access to the host, which could lead to permanent damage. Using the `unshare` command, however, we can use `chroot` to run Bash in an isolated terminal with a truly disengaged process space: 
 ```
-root@kind-control-plane:/# unshare -p -f --mount-proc=/home/namespace/box/proc chroot /home/namespace/box /bin/bash
+root@kind-control-plane:/# unshare -p -n -f --mount-proc=/home/namespace/box/proc chroot /home/namespace/box /bin/bash
 ```
 
 You will see the unawareness of host processes has been accomplished as below:  
@@ -469,6 +488,102 @@ You will see the unawareness of host processes has been accomplished as below:
       4 ?        R+     0:00 ps -ax
   ```
 </details>
+
+#### Creating a network namespace 
+--- 
+
+Although the previous command isolated the process from our other processes, it still uses the same network. 
+
+Run the following command to see the ip addresses in use in the network: 
+
+<details>
+  <summary>
+    <code><br>bash-5.2# ip a<br></code>
+  </summary>
+  <br>
+  
+  ```shell
+  1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host
+       valid_lft forever preferred_lft forever
+  2: vethbd91ad41@if2: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default
+      link/ether d2:4a:47:e7:b5:b8 brd ff:ff:ff:ff:ff:ff link-netnsid 1
+      inet 10.244.0.1/32 scope global vethbd91ad41
+         valid_lft forever preferred_lft forever
+      inet6 fe80::d04a:47ff:fee7:b5b8/64 scope link
+         valid_lft forever preferred_lft forever
+  3: veth13a4fbcb@if2: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default
+      link/ether 26:b0:93:34:14:79 brd ff:ff:ff:ff:ff:ff link-netnsid 2
+      inet 10.244.0.1/32 scope global veth13a4fbcb
+         valid_lft forever preferred_lft forever
+      inet6 fe80::24b0:93ff:fe34:1479/64 scope link
+         valid_lft forever preferred_lft forever
+  4: veth04e35c60@if2: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default
+      link/ether d6:1f:db:70:41:63 brd ff:ff:ff:ff:ff:ff link-netnsid 3
+      inet 10.244.0.1/32 scope global veth04e35c60
+         valid_lft forever preferred_lft forever
+      inet6 fe80::d41f:dbff:fe70:4163/64 scope link
+         valid_lft forever preferred_lft forever
+  5: vethf09bcc10@if2: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default
+      link/ether e2:91:5c:60:c0:68 brd ff:ff:ff:ff:ff:ff link-netnsid 4
+      inet 10.244.0.1/32 scope global vethf09bcc10
+         valid_lft forever preferred_lft forever
+      inet6 fe80::e091:5cff:fe60:c068/64 scope link
+         valid_lft forever preferred_lft forever
+  6: eth0@if7: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default
+      link/ether 02:42:ac:12:00:02 brd ff:ff:ff:ff:ff:ff link-netnsid 0
+      inet 172.18.0.2/16 brd 172.18.255.255 scope global eth0
+         valid_lft forever preferred_lft forever
+      inet6 fc00:f853:ccd:e793::2/64 scope global nodad
+         valid_lft forever preferred_lft forever
+      inet6 fe80::42:acff:fe12:2/64 scope link
+         valid_lft forever preferred_lft forever
+  ```
+</details>
+
+If we want to run the same program with a new network, we can again use the `unshare` command: 
+```bash
+root@kind-control-plane:/# unshare -p -n -f --mount-proc=/home/namespace/box/proc chroot /home/namespace/box /bin/bash
+```
+
+Here we see network status in the new network:
+
+<details>
+  <summary>
+    <code><br>bash-5.2# ip a<br></code>
+  </summary>
+  <br>
+  
+  ```shell
+  1: lo: <LOOPBACK> mtu 65536 qdisc noop state DOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+  ```
+</details>
+
+A chrooted process differs from a real Kubernetes Pod primarily by the absence of a functional `eth0` network device. While chroot forms the basis of containerization in Docker and Kubernetes, it lacks the necessary network and other features required for running containerized applications.
+
+#### Allocateing resource usages  
+--- 
+
+We'll walk through how the kubelet defines cgroup limits, which is configurable via the `--cgroup-driver` flag (commonly using `systemd`). The steps are consistent across Kubernetes, even with different architectures like Windows. To set cgroup limits, get the process PID (`echo $$`) first. 
+```
+bash-5.2# echo $$
+3821
+```
+
+Write its limits to the OS to restrict its memory usage:
+```
+root@kind-control-plane:/# mkdir /sys/fs/cgroup/memory/chroot
+root@kind-control-plane:/# echo "10" > /sys/fs/cgroup/memory/chroot/memory.limit_in_bytes   [1] 
+root@kind-control-plane:/# echo "0" > /sys/fs/cgroup/memory/chroot/memory.swappiness        [2] 
+root@kind-control-plane:/# echo 3821 >  /sys/fs/cgroup/memory/chroot/tasks
+```
+> [1] Allocates our container only 10 bytes of memory, making it incapable of doing basic work. 
+> 
+> [2] Ensures the container doesn’t allocate swap space (Kubernetes almost always runs this way).  
 
 
 </details>
