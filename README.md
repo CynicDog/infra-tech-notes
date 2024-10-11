@@ -323,6 +323,8 @@ spec:
 <details>
 <summary><h3>CH3. Let's build a Pod </h3></summary>
 
+### Pod Startup Latency
+
 When you start a Pod, you might notice some latency. This is due to several low-level Linux processes needed to create the container. Here's what happens:
 
 - The **kubelet** first identifies that it needs to run a container.
@@ -330,6 +332,144 @@ When you start a Pod, you might notice some latency. This is due to several low-
 - During this setup, various components (e.g., **CNI provider**) go through different states. For example, the CNI provider remains idle until it needs to attach the pause container to the network namespace.
 
 When a Pod starts, subpaths and storage directories are mounted using Linux bind mounts, allowing containers to access specific directories. These mounts facilitate critical Kubernetes functions, such as providing storage access to Pods. Tools like `nsenter` can inspect these directories directly through the OS, independent of container runtimes like Docker.
+
+### Linux Primitives 
+
+The <ins>network proxy `kube-proxy` creates iptables rules</ins>, and these rules are often inspected to debug container networking issues in large clusters. Running `iptables -L` in a Kubernetes node is an example usage. <ins>Container Network Interface providers also use this network proxy as well for tasks related to NetworkPolicies implementation</ins>. 
+
+The <ins>Container Storage Interface defines a socket for communication between kubelet and storage stacks</ins> such as Network File System (NFS). For example, running `mount` in a cluster will show you the container and volume mounts managed by Kubernetes solely relying on Linux capabilities.   
+
+Container runtime commands like `unshare` and `mount` are used when creating isolated processes. These commands typically need to be executed by the technologies that manage the containers. 
+
+Linux primitives are fundamentally focused on manipulating, moving, or abstracting files. The entire design of Linux relies on <ins>the file abstraction as a control primitive</ins>.
+
+- A directory is considered a file but contains the names of other files.
+- Devices are represented as files to the Linux kernel, allowing you to use commands like ls to check if an Ethernet device is attached inside a container.
+- Sockets and pipes are also treated as files, enabling local communication between processes. Later, we'll explore how the Container Storage Interface (CSI) leverages this abstraction to define how the kubelet communicates with volume providers, facilitating storage for our Pods.
+
+We can use a pipe (`|`) to take the output from one command and pass it as input to another command: 
+
+<details>
+  <summary>
+    <code><br>ls /var/log/containers/ | grep etcd <br></code>
+  </summary>
+  <br>
+
+  ```bash
+  etcd-kind-control-plane_kube-system_etcd-44daab302813923f188d864543c....log
+  ```
+</details>
+
+In most Linux environments, the things we call containers are just processes created with a few isolated bells and whistles that enable them to play nicely with hundreds of other processes in a microservices cluster. 
+
+### Building a Pod from scratch 
+
+First we need to get inside the container where the control plane is running: 
+
+```
+kubectl exec -it  kind-control-plane /bin/bash
+```
+
+Because we will edit a text file in our kind cluster, let’s install the Vim editor first:  
+```
+root@kind-control-plane:/# apt-get update -y
+root@kind-control-plane:/# apt-get install vim 
+```
+
+We'll create a minimal container—a folder with just enough to run a Bash shell—using the `chroot` command. 
+
+The purpose of chroot is to create an isolated root for a process. There are three steps to this:
+
+- Decide what program you want to run and where on your filesystem it should run.
+- Create an environment for the process to run. There are many Linux programs that live in the lib64 directory, which are required to run even something like Bash. These need to be loaded into the new root.
+- Copy the program you want to run to the chrooted location.
+
+<details>
+  <summary>
+    Here's the script that includes `chroot` operation: 
+  </summary>
+  <br>
+  
+  ```shell
+  #!/bin/bash
+  mkdir -p /home/namespace/box
+  mkdir -p /home/namespace/box/bin
+  mkdir -p /home/namespace/box/lib
+  mkdir -p /home/namespace/box/lib64
+  mkdir -p /home/namespace/box/proc
+  
+  cp -v /usr/bin/kill /home/namespace/box/bin/
+  cp -v /usr/bin/ps /home/namespace/box/bin
+  cp -v /bin/bash /home/namespace/box/bin
+  cp -v /bin/ls /home/namespace/box/bin
+  
+  cp -r /lib/* /home/namespace/box/lib/
+  cp -r /lib64/* /home/namespace/box/lib64/
+  
+  mount -t proc proc /home/namespace/box/proc
+
+  chroot /home/namespace/box /bin/bash
+  ```
+</details>
+
+Give an execute permission to the script file and run the script: 
+```
+root@kind-control-plane:/# chmod +x chroot.sh
+root@kind-control-plane:/# ./chroot.sh
+```
+
+You will then realize that we have isolated a separate `chroot` environment by seeing the result of `ls` on the new root directory: 
+```
+bash-5.2# ls
+bin  lib  lib64 proc
+```
+
+We can mount a folder to create a consistent reference point for a disk, enabling it to exist in a different location. Open a new terminal and access the control plane container again. Then, create a new directory for the box namespace and mount /tmp/ to that directory:
+```
+root@kind-control-plane:/# mkdir -p /home/namespace/box/data
+root@kind-control-plane:/# mount --bind /tmp/ /home/namespace/box/data
+```
+
+You've now created something similar to a container with access to storage. Let's check that access:
+
+```bash
+root@kind-control-plane:/# touch /tmp/a
+root@kind-control-plane:/# touch /tmp/b
+root@kind-control-plane:/# touch /tmp/c
+```
+
+Now, let's list the contents in the mounted directory:
+<details>
+  <summary>
+    <code><br>bash-5.2# ls /data/ <br></code>
+  </summary>
+  <br>
+  
+  ```shell
+  a  b  c
+  ```
+</details>
+
+
+Running `ps -ax` will still show that our chrooted container has full access to the host, which could lead to permanent damage. Using the `unshare` command, however, we can use `chroot` to run Bash in an isolated terminal with a truly disengaged process space: 
+```
+root@kind-control-plane:/# unshare -p -f --mount-proc=/home/namespace/box/proc chroot /home/namespace/box /bin/bash
+```
+
+You will see the unawareness of host processes has been accomplished as below:  
+<details>
+  <summary>
+    <code><br>bash-5.2# ps -ax <br></code>
+  </summary>
+  <br>
+  
+  ```shell
+    PID TTY      STAT   TIME COMMAND
+      1 ?        S      0:00 /bin/bash
+      4 ?        R+     0:00 ps -ax
+  ```
+</details>
+
 
 </details>
 
