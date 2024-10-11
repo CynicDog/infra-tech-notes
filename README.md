@@ -348,17 +348,10 @@ Linux primitives are fundamentally focused on manipulating, moving, or abstracti
 - Sockets and pipes are also treated as files, enabling local communication between processes. Later, we'll explore how the Container Storage Interface (CSI) leverages this abstraction to define how the kubelet communicates with volume providers, facilitating storage for our Pods.
 
 We can use a pipe (`|`) to take the output from one command and pass it as input to another command: 
-
-<details>
-  <summary>
-    <code><br>ls /var/log/containers/ | grep etcd <br></code>
-  </summary>
-  <br>
-
-  ```bash
-  etcd-kind-control-plane_kube-system_etcd-44daab302813923f188d864543c....log
-  ```
-</details>
+```bash
+$ ls /var/log/containers/ | grep etcd
+etcd-kind-control-plane_kube-system_etcd-44daab302813923f188d864543c....log
+```
 
 In most Linux environments, the things we call containers are just processes created with a few isolated bells and whistles that enable them to play nicely with hundreds of other processes in a microservices cluster. 
 
@@ -372,7 +365,8 @@ In most Linux environments, the things we call containers are just processes cre
 First we need to get inside the container where the control plane is running: 
 
 ```
-kubectl exec -it  kind-control-plane /bin/bash
+$ kind create cluster
+$ docker exec -it  kind-control-plane /bin/bash
 ```
 
 Because we will edit a text file in our kind cluster, let’s install the Vim editor first:  
@@ -465,16 +459,10 @@ root@kind-control-plane:/# touch /tmp/c
 ```
 
 Now, let's list the contents in the mounted directory:
-<details>
-  <summary>
-    <code><br>bash-5.2# ls /data/ <br></code>
-  </summary>
-  <br>
-  
-  ```shell
-  a  b  c
-  ```
-</details>
+```shell
+bash-5.2# ls /data/ 
+a  b  c
+```
 
 Running `ps -ax` will still show that our chrooted container has full access to the host, which could lead to permanent damage. Using the `unshare` command, however, we can use `chroot` to run Bash in an isolated terminal with a truly disengaged process space: 
 ```
@@ -482,21 +470,14 @@ root@kind-control-plane:/# unshare -p -n -f --mount-proc=/home/namespace/box/pro
 ```
 
 You will see the unawareness of host processes has been accomplished as below:  
-<details>
-  <summary>
-    <code><br>bash-5.2# ps -ax <br></code>
-  </summary>
-  <br>
-  
-  ```shell
-    PID TTY      STAT   TIME COMMAND
-      1 ?        S      0:00 /bin/bash
-      4 ?        R+     0:00 ps -ax
-  ```
-</details>
 
+```bash
+bash-5.2# ps -ax 
+  PID TTY      STAT   TIME COMMAND
+    1 ?        S      0:00 /bin/bash
+    4 ?        R+     0:00 ps -ax
+```
 </details>
-
 
 <details>
   <summary>
@@ -602,6 +583,86 @@ root@kind-control-plane:/# echo 3821 >  /sys/fs/cgroup/memory/chroot/tasks
 
 </details>
 
+### Understainding `kube-proxy` service implementations  
+
+Kubernetes services route traffic to multiple endpoints via `kube-proxy`, typically using iptables for network routing.
+
+A Pod requires:
+
+- Capability to accept traffic as a service endpoint
+- Ability to send outbound traffic
+- Mechanism to track ongoing TCP connections, typically via the conntrack module in the Linux kernel
+
+The `kube-dns` is a great example to study as it typifies a Pod you'd commonly deploy in a Kubernetes application. Key points about the `kube-dns` include:
+
+- It operates in any Kubernetes cluster.
+- It has no special privileges and utilizes the standard Pod network instead of the host network.
+- It communicates over port 53, the standard DNS port.
+- It's included by default in your kind cluster.
+
+In Kubernetes, a CNI provider provides a unique IP address and routing rules to access a Pod. We can investigate these routes by running the following command: 
+```bash
+root@kind-control-plane:/# ip route
+default via 172.18.0.1 dev eth0
+10.244.0.2 dev veth4c4e1e72 scope host
+10.244.0.3 dev veth228a67a5 scope host
+10.244.0.4 dev veth79bea39b scope host
+172.18.0.0/16 dev eth0 proto kernel scope link src 172.18.0.2
+```
+> In the code snippet, IP routes direct traffic to specific veth devices created by our networking plugin.
+
+But how do Kubernetes Services route traffic to these devices? We can find the answer by examining the output of the iptables program:
+
+<details>
+  <summary>
+    <code><br>root@kind-control-plane:/# iptables-save | grep 10.244.0.* <br></code>
+  </summary>
+  <br>
+  
+  ```shell
+  -A KIND-MASQ-AGENT -d 10.244.0.0/16 -m comment --comment "kind-masq-agent: local traffic is not subject to MASQUERADE" -j RETURN       
+  -A KUBE-SEP-IT2ZTR26TO4XFPTO -s 10.244.0.2/32 -m comment --comment "kube-system/kube-dns:dns-tcp" -j KUBE-MARK-MASQ   [1] 
+  -A KUBE-SEP-IT2ZTR26TO4XFPTO -p tcp -m comment --comment "kube-system/kube-dns:dns-tcp" -m tcp -j DNAT --to-destination 10.244.0.2:53
+  -A KUBE-SEP-N4G2XR5TDX7PQE7P -s 10.244.0.2/32 -m comment --comment "kube-system/kube-dns:metrics" -j KUBE-MARK-MASQ
+  -A KUBE-SEP-N4G2XR5TDX7PQE7P -p tcp -m comment --comment "kube-system/kube-dns:metrics" -m tcp -j DNAT --to-destination 10.244.0.2:9153
+  -A KUBE-SEP-PUHFDAMRBZWCPADU -s 10.244.0.4/32 -m comment --comment "kube-system/kube-dns:metrics" -j KUBE-MARK-MASQ
+  -A KUBE-SEP-PUHFDAMRBZWCPADU -p tcp -m comment --comment "kube-system/kube-dns:metrics" -m tcp -j DNAT --to-destination 10.244.0.4:9153
+  -A KUBE-SEP-SF3LG62VAE5ALYDV -s 10.244.0.4/32 -m comment --comment "kube-system/kube-dns:dns-tcp" -j KUBE-MARK-MASQ
+  -A KUBE-SEP-SF3LG62VAE5ALYDV -p tcp -m comment --comment "kube-system/kube-dns:dns-tcp" -m tcp -j DNAT --to-destination 10.244.0.4:53
+  -A KUBE-SEP-WXWGHGKZOCNYRYI7 -s 10.244.0.4/32 -m comment --comment "kube-system/kube-dns:dns" -j KUBE-MARK-MASQ
+  -A KUBE-SEP-WXWGHGKZOCNYRYI7 -p udp -m comment --comment "kube-system/kube-dns:dns" -m udp -j DNAT --to-destination 10.244.0.4:53
+  -A KUBE-SEP-YIL6JZP7A3QYXJU2 -s 10.244.0.2/32 -m comment --comment "kube-system/kube-dns:dns" -j KUBE-MARK-MASQ
+  -A KUBE-SEP-YIL6JZP7A3QYXJU2 -p udp -m comment --comment "kube-system/kube-dns:dns" -m udp -j DNAT --to-destination 10.244.0.2:53
+  -A KUBE-SVC-ERIFXISQEP7F7OF4 ! -s 10.244.0.0/16 -d 10.96.0.10/32 -p tcp -m comment --comment "kube-system/kube-dns:dns-tcp cluster IP" -m tcp --dport 53 -j KUBE-MARK-MASQ
+  -A KUBE-SVC-ERIFXISQEP7F7OF4 -m comment --comment "kube-system/kube-dns:dns-tcp -> 10.244.0.2:53" -m statistic --mode random --probability 0.50000000000 -j KUBE-SEP-IT2ZTR26TO4XFPTO
+  -A KUBE-SVC-ERIFXISQEP7F7OF4 -m comment --comment "kube-system/kube-dns:dns-tcp -> 10.244.0.4:53" -j KUBE-SEP-SF3LG62VAE5ALYDV
+  -A KUBE-SVC-JD5MR3NA4I4DYORP ! -s 10.244.0.0/16 -d 10.96.0.10/32 -p tcp -m comment --comment "kube-system/kube-dns:metrics cluster IP" -m tcp --dport 9153 -j KUBE-MARK-MASQ
+  -A KUBE-SVC-JD5MR3NA4I4DYORP -m comment --comment "kube-system/kube-dns:metrics -> 10.244.0.2:9153" -m statistic --mode random --probability 0.50000000000 -j KUBE-SEP-N4G2XR5TDX7PQE7P
+  -A KUBE-SVC-JD5MR3NA4I4DYORP -m comment --comment "kube-system/kube-dns:metrics -> 10.244.0.4:9153" -j KUBE-SEP-PUHFDAMRBZWCPADU
+  -A KUBE-SVC-NPX46M4PTMTKRN6Y ! -s 10.244.0.0/16 -d 10.96.0.1/32 -p tcp -m comment --comment "default/kubernetes:https cluster IP" -m tcp --dport 443 -j KUBE-MARK-MASQ
+  -A KUBE-SVC-TCOU7JCQXEZGVUNU ! -s 10.244.0.0/16 -d 10.96.0.10/32 -p udp -m comment --comment "kube-system/kube-dns:dns cluster IP" -m udp --dport 53 -j KUBE-MARK-MASQ
+  -A KUBE-SVC-TCOU7JCQXEZGVUNU -m comment --comment "kube-system/kube-dns:dns -> 10.244.0.2:53" -m statistic --mode random --probability 0.50000000000 -j KUBE-SEP-YIL6JZP7A3QYXJU2
+  -A KUBE-SVC-TCOU7JCQXEZGVUNU -m comment --comment "kube-system/kube-dns:dns -> 10.244.0.4:53" -j KUBE-SEP-WXWGHGKZOCNYRYI7
+  ```
+  > [1] In the command, the `-j` option directs any access to the rule `KUBE-SEP-IT2ZTR26TO4XFPTO` to jump to the `KUBE-MARK-MASQ` rule.
+
+</details>
+
+Kubernetes Services route traffic to pods by utilizing iptables, a Linux utility for configuring network packet filtering rules. By examining the output of the `iptables-save` command, we can understand how this routing process works.
+
+- **Traffic Masquerading**: The rule `-A KIND-MASQ-AGENT -d 10.244.0.0/16 ... -j RETURN` allows local traffic within the cluster network (`10.244.0.0/16`) to bypass masquerading, ensuring it remains within the internal network.
+
+- **Service Endpoints (SEP)**: Each service has associated endpoint rules. For example, the rule `-A KUBE-SEP-IT2ZTR26TO4XFPTO -s 10.244.0.2/32 ... -j KUBE-MARK-MASQ` marks traffic going to a specific pod (`10.244.0.2`) for masquerading.
+
+- **Destination NAT (DNAT)**: The `-A KUBE-SEP-IT2ZTR26TO4XFPTO -p tcp ... -j DNAT --to-destination 10.244.0.2:53` rule redirects TCP traffic destined for the service to the specific pod IP (`10.244.0.2`) on port 53. This is the endpoint where the `kube-dns`'s Pod serves its traffic (the IP address of the CoreDNS Pod that is running). Note that `kube-dns` is the name of our service, and CoreDNS is the very Pod that implements our `kube-dns` service endpoint.   
+
+- **Service Routing (SVC)**: The rules for service routing, such as `-A KUBE-SVC-ERIFXISQEP7F7OF4 ... -m comment --comment "kube-system/kube-dns:dns-tcp -> 10.244.0.2:53"`, indicate that traffic directed to the service's Cluster IP (`10.96.0.10`) will be routed to one of the pod endpoints (`10.244.0.2` or `10.244.0.4`) based on random probability. This helps in load balancing.
+
+- **Multiple Protocols**: Different protocols (TCP and UDP) are handled with specific rules. For example, the DNS service can route UDP packets via `KUBE-SVC-TCOU7JCQXEZGVUNU` to the appropriate endpoints.
+
+- **Service Types**: The rules apply to various service types. For instance, the output shows service rules for DNS and metrics services within the kube-system namespace, highlighting the versatility of routing configurations in Kubernetes.
+
+- **Load Balancing**: The use of `statistic --mode random --probability` within rules demonstrates how traffic can be distributed randomly across multiple endpoints to ensure efficient load balancing.
 
 </details>
 
