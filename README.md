@@ -364,14 +364,16 @@ In most Linux environments, the things we call containers are just processes cre
 
 ### Building a Pod from scratch 
 
+<details>
+  <summary>
+    <h4><ins>Installing Essential Tools in the Kind Control Plane Container</ins></h4>
+  </summary>
+  
 First we need to get inside the container where the control plane is running: 
 
 ```
 kubectl exec -it  kind-control-plane /bin/bash
 ```
-
-#### Installing Essential Tools in the Kind Control Plane Container 
---- 
 
 Because we will edit a text file in our kind cluster, let’s install the Vim editor first:  
 ```
@@ -428,9 +430,13 @@ The purpose of chroot is to create an isolated root for a process. There are thr
   ```
 </details>
 
+</details>
 
-#### Mounting Directories for Persistent Storage in the Chroot Environment
----
+
+<details>
+  <summary>
+    <h4><ins>Mounting Directories for Persistent Storage in the Chroot Environment</ins></h4>
+  </summary>
 
 Give an execute permission to the script file and run the script: 
 ```
@@ -489,8 +495,13 @@ You will see the unawareness of host processes has been accomplished as below:
   ```
 </details>
 
-#### Creating a network namespace 
---- 
+</details>
+
+
+<details>
+  <summary>
+    <h4><ins>Creating a network namespace</ins></h4>
+  </summary>
 
 Although the previous command isolated the process from our other processes, it still uses the same network. 
 
@@ -565,9 +576,13 @@ Here we see network status in the new network:
 
 A chrooted process differs from a real Kubernetes Pod primarily by the absence of a functional `eth0` network device. While chroot forms the basis of containerization in Docker and Kubernetes, it lacks the necessary network and other features required for running containerized applications.
 
-#### Allocateing resource usages  
---- 
+</details>
 
+<details>
+  <summary>
+    <h4><ins>Allocateing resource usages</ins></h4>
+  </summary>
+  
 We'll walk through how the kubelet defines cgroup limits, which is configurable via the `--cgroup-driver` flag (commonly using `systemd`). The steps are consistent across Kubernetes, even with different architectures like Windows. To set cgroup limits, get the process PID (`echo $$`) first. 
 ```
 bash-5.2# echo $$
@@ -584,6 +599,8 @@ root@kind-control-plane:/# echo 3821 >  /sys/fs/cgroup/memory/chroot/tasks
 > [1] Allocates our container only 10 bytes of memory, making it incapable of doing basic work. 
 > 
 > [2] Ensures the container doesn’t allocate swap space (Kubernetes almost always runs this way).  
+
+</details>
 
 
 </details>
