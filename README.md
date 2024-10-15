@@ -673,6 +673,8 @@ Rather than allowing all processes full access to the system's limited resources
 
 cgroups allow us to define hierarchically separated bins for memory, CPU, and other OS resources. All threads created by a program use the same pool of resources initially granted to the parent process. In other words, no one can play in someone else’s pool.
 
+### Processes and threads in Linux
+
 Each process in Linux can create multiple threads, which are abstractions that allow programs to share memory with other processes. For instance, we can examine independent scheduling threads in Kubernetes using the `ps -T` command. 
 
 <details>
@@ -703,6 +705,7 @@ Each process in Linux can create multiple threads, which are abstractions that a
   554    1733 ?        Ssl    0:00 kube-scheduler --authentication-kubeconfig=/etc/kubernet..
   554    1734 ?        Ssl    0:01 kube-scheduler --authentication-kubeconfig=/etc/kubernet..
   ```
+  > This query displays parallel scheduler threads that share memory with each other.
 </details>
 
 
