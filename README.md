@@ -662,7 +662,7 @@ Kubernetes Services route traffic to pods by utilizing iptables, a Linux utility
 
 - **Service Types**: The rules apply to various service types. For instance, the output shows service rules for DNS and metrics services within the kube-system namespace, highlighting the versatility of routing configurations in Kubernetes.
 
-- **Load Balancing**: The use of `statistic --mode random --probability` within rules demonstrates how traffic can be distributed randomly across multiple endpoints to ensure efficient load balancing.
+- **Load Balancing**: The use of `-m statistic --mode random --probability` within rules demonstrates how traffic can be distributed randomly across multiple endpoints to ensure efficient load balancing.
 
 </details>
 
