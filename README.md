@@ -382,7 +382,7 @@ root@kind-control-plane:/# apt install iproute2
 
 We'll create a minimal container—a folder with just enough to run a Bash shell—using the `chroot` command. 
 
-The purpose of chroot is to create an isolated root for a process. There are three steps to this:
+<ins>**The purpose of chroot is to create an isolated root for a process**</ins>. There are three steps to this:
 
 - Decide what program you want to run and where on your filesystem it should run.
 - Create an environment for the process to run. There are many Linux programs that live in the lib64 directory, which are required to run even something like Bash. These need to be loaded into the new root.
@@ -444,7 +444,7 @@ bash-5.2# ls
 bin  lib  lib64 proc
 ```
 
-We can mount a folder to create a consistent reference point for a disk, enabling it to exist in a different location. Open a new terminal and access the control plane container again. Then, create a new directory for the box namespace and mount /tmp/ to that directory:
+We can `mount` <ins>**a folder to create a consistent reference point for a disk**</ins>, enabling it to exist in a different location. Open a new terminal and access the control plane container again. Then, create a new directory for the box namespace and `mount /tmp/` to that directory:
 ```
 root@kind-control-plane:/# mkdir -p /home/namespace/box/data
 root@kind-control-plane:/# mount --bind /tmp/ /home/namespace/box/data
@@ -536,7 +536,7 @@ Run the following command to see the ip addresses in use in the network:
   ```
 </details>
 
-If we want to run the same program with a new network, we can again use the `unshare` command: 
+<ins>**If we want to run the same program within a new network, we can again use the**</ins> `unshare` <ins>**command**</ins>: 
 ```bash
 root@kind-control-plane:/# unshare -p -n -f --mount-proc=/home/namespace/box/proc chroot /home/namespace/box /bin/bash
 ```
@@ -561,7 +561,7 @@ A chrooted process differs from a real Kubernetes Pod primarily by the absence o
 
 <details>
   <summary>
-    <h4><ins>Allocateing resource usages</ins></h4>
+    <h4><ins>Allocating resource usages</ins></h4>
   </summary>
   
 We'll walk through how the kubelet defines cgroup limits, which is configurable via the `--cgroup-driver` flag (commonly using `systemd`). The steps are consistent across Kubernetes, even with different architectures like Windows. To set cgroup limits, get the process PID (`echo $$`) first. 
