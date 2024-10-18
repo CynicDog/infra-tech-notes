@@ -848,6 +848,8 @@ cgroup.subtree_control	cpu.weight.nice  hugetlb.1GB.max	   hugetlb.2MB.rsvd.curr
 ```
 > This command lists the files related to the NGINX container’s cgroup, providing insights into its resource limits, current usage statistics, and management settings.
 
+In conclusion, the isolation provided by Kubernetes can be understood on a Linux machine as a regular hierarchical distribution of resources organized through a straightforward directory structure.
+
 </details>
 
 <details>
