@@ -777,6 +777,77 @@ Let’s check for any cgroups associated with our processor by executing the fol
 
 We have observed that every process in Kubernetes (on a Linux machine) is ultimately recorded in the bookkeeping tables located in the `/proc` directory, which includes the `/cgroup` folder that provides details about control groups managing resource allocation for these processes. 
 
+### Implementing cgroups for a normal Pod
+
+A more realistic scenario might be checking whether the cgroups for an application you're running (like NGINX) were set up correctly.
+
+Let's create a deployment of NGINX with three pods by running: 
+```bash
+kubectl apply -f nginx.yml 
+```
+
+<details><summary>where the <code>nginx.yml</code> would look like: </summary>
+<br>
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+        resources:
+          requests: 
+            cpu: 1
+            memory: "3G" 
+        ports:
+        - containerPort: 80
+```
+</details>
+
+The NGINX container now has dedicated access to one core and one GB of memory. After creating this pod, we can directly examine its cgroup hierarchy by accessing the memory field, which can be tracked down by running the `ps -ax` command: 
+
+```bash
+root@kind-control-plane:/# ps ax | grep nginx 
+   7623 ?        Ss     0:00 nginx: master process nginx -g daemon off;
+   7661 ?        S      0:00 nginx: worker process
+   7662 ?        S      0:00 nginx: worker process
+```
+
+Now, let's investigate the cgroup hierarchy for the NGINX master process to understand how it is managed by Kubernetes: 
+```bash
+root@kind-control-plane:/# cat /proc/7623/cgroup 
+0::/kubelet.slice/kubelet-kubepods.slice/kubelet-kubepods-burstable.slice/kubelet-kubepods-burstable-pod99939d4f_c8cc_4e3a_93ff_8b265731a3cf.slice/cri-containerd-40cca363ebb6feabb8f6e6c72d5359bd30725aeab1bd6e2f5adf5317c1673701.scope
+```
+> This command reveals the cgroup path for the NGINX master process, showing its allocation under Kubernetes' management structures.
+
+Next, we can explore the contents of this cgroup to see the available resources and settings.
+This will lead us to ...
+```bash
+root@kind-control-plane:/# ls /sys/fs/cgroup/kubelet.slice/kubelet-kubepods.slice/kubelet-kubepods-burstable.slice/kubelet-kubepods-burstable-pod99939d4f_c8cc_4e3a_93ff_8b265731a3cf.slice/cri-containerd-40cca363ebb6feabb8f6e6c72d5359bd30725aeab1bd6e2f5adf5317c1673701.scope/
+cgroup.controllers	cgroup.threads	 cpuset.cpus		   hugetlb.1GB.numa_stat     hugetlb.2MB.rsvd.max	hugetlb.64KB.events	   memory.events	memory.stat	      pids.events
+cgroup.events		cgroup.type	 cpuset.cpus.effective	   hugetlb.1GB.rsvd.current  hugetlb.32MB.current	hugetlb.64KB.events.local  memory.events.local	memory.swap.current   pids.max
+cgroup.freeze		cpu.idle	 cpuset.cpus.partition	   hugetlb.1GB.rsvd.max      hugetlb.32MB.events	hugetlb.64KB.max	   memory.high		memory.swap.events    pids.peak
+cgroup.kill		cpu.max		 cpuset.mems		   hugetlb.2MB.current	     hugetlb.32MB.events.local	hugetlb.64KB.numa_stat	   memory.low		memory.swap.high      rdma.current
+cgroup.max.depth	cpu.max.burst	 cpuset.mems.effective	   hugetlb.2MB.events	     hugetlb.32MB.max		hugetlb.64KB.rsvd.current  memory.max		memory.swap.max       rdma.max
+cgroup.max.descendants	cpu.stat	 hugetlb.1GB.current	   hugetlb.2MB.events.local  hugetlb.32MB.numa_stat	hugetlb.64KB.rsvd.max	   memory.min		memory.swap.peak
+cgroup.procs		cpu.stat.local	 hugetlb.1GB.events	   hugetlb.2MB.max	     hugetlb.32MB.rsvd.current	io.max			   memory.oom.group	memory.zswap.current
+cgroup.stat		cpu.weight	 hugetlb.1GB.events.local  hugetlb.2MB.numa_stat     hugetlb.32MB.rsvd.max	io.stat			   memory.peak		memory.zswap.max
+cgroup.subtree_control	cpu.weight.nice  hugetlb.1GB.max	   hugetlb.2MB.rsvd.current  hugetlb.64KB.current	memory.current		   memory.reclaim	pids.current
+```
+> This command lists the files related to the NGINX container’s cgroup, providing insights into its resource limits, current usage statistics, and management settings.
+
 </details>
 
 <details>
