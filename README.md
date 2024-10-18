@@ -708,6 +708,74 @@ Each process in Linux can create multiple threads, which are abstractions that a
   > This query displays parallel scheduler threads that share memory with each other.
 </details>
 
+### cgroups for our process 
+
+We now have a clear understanding of what this scheduler Pod is doing: it has spawned several child processes, likely created by Kubernetes, as it is a child of containerd, the container runtime used by Kubernetes in `kind`. 
+
+To understand how processes work, you can kill the containerd process and observe the scheduler and its subthreads come back to life. This is managed by the kubelet, which contains a `/manifests` directory. This directory informs the kubelet about essential processes that should run even before an API server can schedule containers. In fact, this is how Kubernetes installs itself through the kubelet.
+
+The life cycle of a Kubernetes installation using kubeadm, the most common installation tool, proceeds as follows:
+
+1. The kubelet has a manifests directory containing the API server, scheduler, and controller manager.
+2. The kubelet is initiated by systemd.
+3. The kubelet instructs containerd (or the configured container runtime) to start all processes listed in the manifests directory.
+4. Once the API server is up and running, the kubelet connects to it and executes any containers requested by the API server.
+
+A **<ins>mirror Pod</ins>** is a special type of Pod that the Kubernetes scheduler uses to manage resources. `kube-apiserver-kind-control-plane` is an example of a mirror Pod. However, the API server does not recognize this mirror Pod because it is created directly by the kubelet (the node agent that runs on each worker node).
+
+Run the following command on your mahcine to see details: 
+
+<details><summary><code>kubectl edit pod/kube-scheduler-kind-control-plane -n kube-system <br></code></summary>
+<br> 
+  
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    kubernetes.io/config.hash: 9bdf7f956212aa6f2f85e496c389a56e
+    kubernetes.io/config.mirror: 9bdf7f956212aa6f2f85e496c389a56e
+    kubernetes.io/config.seen: "2024-10-11T05:56:44.346226347Z"
+    kubernetes.io/config.source: file
+...
+```
+> [1] The mirror Pod ID of the scheduler. 
+
+</details>
+
+To make this clearer, we can examine the mirror Pod ID of the scheduler to locate its control groups (cgroups). Cgroups are used by the operating system to manage and limit the resources (like CPU and memory) allocated to processes. By looking at the mirror Pod ID, we can determine which cgroups are assigned to the scheduler, allowing us to understand how it manages its resources.
+
+Let’s check for any cgroups associated with our processor by executing the following command: 
+
+<details>
+  <summary>
+    <code><br>root@kind-control-plane:/# cat /proc/$(pgrep -f kube-scheduler)/cgroup <br></code>
+  </summary>
+  <br>
+  
+  ```shell
+  29:name=systemd:/kubelet.slice/kubelet-kubepods.slice/kubelet-kubepods-burstable.slice/kubelet-kubepods-burstable-pod9bdf7f956212aa6f2f85e496c389a56e.slice/cri-containerd-a3ea79e0b419762300820f80caa43ebf0c7622d8ee128442421dea6c2cba9cce.scope
+  28:misc:/
+  27:rdma:/kubelet.slice/kubelet-kubepods.slice/kubelet-kubepods-burstable.slice/kubelet-kubepods-burstable-pod9bdf7f956212aa6f2f85e496c389a56e.slice/cri-containerd-a3ea79e0b419762300820f80caa43ebf0c7622d8ee128442421dea6c2cba9cce.scope
+  26:pids:/kubelet.slice/kubelet-kubepods.slice/kubelet-kubepods-burstable.slice/kubelet-kubepods-burstable-pod9bdf7f956212aa6f2f85e496c389a56e.slice/cri-containerd-a3ea79e0b419762300820f80caa43ebf0c7622d8ee128442421dea6c2cba9cce.scope
+  25:hugetlb:/kubelet.slice/kubelet-kubepods.slice/kubelet-kubepods-burstable.slice/kubelet-kubepods-burstable-pod9bdf7f956212aa6f2f85e496c389a56e.slice/cri-containerd-a3ea79e0b419762300820f80caa43ebf0c7622d8ee128442421dea6c2cba9cce.scope
+  24:net_prio:/kubelet.slice/kubelet-kubepods.slice/kubelet-kubepods-burstable.slice/kubelet-kubepods-burstable-pod9bdf7f956212aa6f2f85e496c389a56e.slice/cri-containerd-a3ea79e0b419762300820f80caa43ebf0c7622d8ee128442421dea6c2cba9cce.scope
+  23:perf_event:/kubelet.slice/kubelet-kubepods.slice/kubelet-kubepods-burstable.slice/kubelet-kubepods-burstable-pod9bdf7f956212aa6f2f85e496c389a56e.slice/cri-containerd-a3ea79e0b419762300820f80caa43ebf0c7622d8ee128442421dea6c2cba9cce.scope
+  22:net_cls:/kubelet.slice/kubelet-kubepods.slice/kubelet-kubepods-burstable.slice/kubelet-kubepods-burstable-pod9bdf7f956212aa6f2f85e496c389a56e.slice/cri-containerd-a3ea79e0b419762300820f80caa43ebf0c7622d8ee128442421dea6c2cba9cce.scope
+  21:freezer:/kubelet.slice/kubelet-kubepods.slice/kubelet-kubepods-burstable.slice/kubelet-kubepods-burstable-pod9bdf7f956212aa6f2f85e496c389a56e.slice/cri-containerd-a3ea79e0b419762300820f80caa43ebf0c7622d8ee128442421dea6c2cba9cce.scope
+  20:devices:/kubelet.slice/kubelet-kubepods.slice/kubelet-kubepods-burstable.slice/kubelet-kubepods-burstable-pod9bdf7f956212aa6f2f85e496c389a56e.slice/cri-containerd-a3ea79e0b419762300820f80caa43ebf0c7622d8ee128442421dea6c2cba9cce.scope
+  19:memory:/kubelet.slice/kubelet-kubepods.slice/kubelet-kubepods-burstable.slice/kubelet-kubepods-burstable-pod9bdf7f956212aa6f2f85e496c389a56e.slice/cri-containerd-a3ea79e0b419762300820f80caa43ebf0c7622d8ee128442421dea6c2cba9cce.scope
+  18:blkio:/kubelet.slice/kubelet-kubepods.slice/kubelet-kubepods-burstable.slice/kubelet-kubepods-burstable-pod9bdf7f956212aa6f2f85e496c389a56e.slice/cri-containerd-a3ea79e0b419762300820f80caa43ebf0c7622d8ee128442421dea6c2cba9cce.scope
+  17:cpuacct:/kubelet.slice/kubelet-kubepods.slice/kubelet-kubepods-burstable.slice/kubelet-kubepods-burstable-pod9bdf7f956212aa6f2f85e496c389a56e.slice/cri-containerd-a3ea79e0b419762300820f80caa43ebf0c7622d8ee128442421dea6c2cba9cce.scope
+  16:cpu:/kubelet.slice/kubelet-kubepods.slice/kubelet-kubepods-burstable.slice/kubelet-kubepods-burstable-pod9bdf7f956212aa6f2f85e496c389a56e.slice/cri-containerd-a3ea79e0b419762300820f80caa43ebf0c7622d8ee128442421dea6c2cba9cce.scope
+  15:cpuset:/kubelet.slice/kubelet-kubepods.slice/kubelet-kubepods-burstable.slice/kubelet-kubepods-burstable-pod9bdf7f956212aa6f2f85e496c389a56e.slice/cri-containerd-a3ea79e0b419762300820f80caa43ebf0c7622d8ee128442421dea6c2cba9cce.scope
+  0::/kubelet.slice/kubelet-kubepods.slice/kubelet-kubepods-burstable.slice/kubelet-kubepods-burstable-pod9bdf7f956212aa6f2f85e496c389a56e.slice/cri-containerd-a3ea79e0b419762300820f80caa43ebf0c7622d8ee128442421dea6c2cba9cce.scope
+  ```
+  > Each line in the output follows the structure `<cgroup_id>:<subsystem>:<path>`, where `<cgroup_id>` serves as the identifier for the cgroup, `<subsystem>` represents the resource controller being managed (such as `cpu` or `memory`), and `<path>` indicates the hierarchical location of the cgroup within the system.
+
+</details>
+
+We have observed that every process in Kubernetes (on a Linux machine) is ultimately recorded in the bookkeeping tables located in the `/proc` directory, which includes the `/cgroup` folder that provides details about control groups managing resource allocation for these processes. 
 
 </details>
 
