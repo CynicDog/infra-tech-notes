@@ -850,6 +850,292 @@ cgroup.subtree_control	cpu.weight.nice  hugetlb.1GB.max	   hugetlb.2MB.rsvd.curr
 
 In conclusion, the isolation provided by Kubernetes can be understood on a Linux machine as a regular hierarchical distribution of resources organized through a straightforward directory structure.
 
+### How the kubelet manages cgroups 
+
+While most focus on CPU and memory isolation, understanding others is useful. For example, the freezer cgroup manages groups of tasks for pausing and resuming, though Kubernetes doesn’t fully utilize this. The blkio cgroup handles I/O management, and `/sys/fs/cgroup` shows how resources are allocated in Linux. 
+
+<details><summary><code>root@kind-control-plane:/# ls -d /sys/fs/cgroup/*<br> </code></summary>
+
+<br>
+
+```bash
+/sys/fs/cgroup/cgroup.controllers	  /sys/fs/cgroup/hugetlb.32MB.rsvd.current
+/sys/fs/cgroup/cgroup.events		  /sys/fs/cgroup/hugetlb.32MB.rsvd.max
+/sys/fs/cgroup/cgroup.freeze		  /sys/fs/cgroup/hugetlb.64KB.current
+/sys/fs/cgroup/cgroup.kill		  /sys/fs/cgroup/hugetlb.64KB.events
+/sys/fs/cgroup/cgroup.max.depth		  /sys/fs/cgroup/hugetlb.64KB.events.local
+/sys/fs/cgroup/cgroup.max.descendants	  /sys/fs/cgroup/hugetlb.64KB.max
+/sys/fs/cgroup/cgroup.procs		  /sys/fs/cgroup/hugetlb.64KB.numa_stat
+/sys/fs/cgroup/cgroup.stat		  /sys/fs/cgroup/hugetlb.64KB.rsvd.current
+/sys/fs/cgroup/cgroup.subtree_control	  /sys/fs/cgroup/hugetlb.64KB.rsvd.max
+/sys/fs/cgroup/cgroup.threads		  /sys/fs/cgroup/init.scope
+/sys/fs/cgroup/cgroup.type		  /sys/fs/cgroup/io.max
+/sys/fs/cgroup/cpu.idle			  /sys/fs/cgroup/io.stat
+/sys/fs/cgroup/cpu.max			  /sys/fs/cgroup/kubelet
+/sys/fs/cgroup/cpu.max.burst		  /sys/fs/cgroup/kubelet.slice
+/sys/fs/cgroup/cpu.stat			  /sys/fs/cgroup/memory.current
+/sys/fs/cgroup/cpu.stat.local		  /sys/fs/cgroup/memory.events
+/sys/fs/cgroup/cpu.weight		  /sys/fs/cgroup/memory.events.local
+/sys/fs/cgroup/cpu.weight.nice		  /sys/fs/cgroup/memory.high
+/sys/fs/cgroup/cpuset.cpus		  /sys/fs/cgroup/memory.low
+/sys/fs/cgroup/cpuset.cpus.effective	  /sys/fs/cgroup/memory.max
+/sys/fs/cgroup/cpuset.cpus.partition	  /sys/fs/cgroup/memory.min
+/sys/fs/cgroup/cpuset.mems		  /sys/fs/cgroup/memory.oom.group
+/sys/fs/cgroup/cpuset.mems.effective	  /sys/fs/cgroup/memory.peak
+/sys/fs/cgroup/dev-hugepages.mount	  /sys/fs/cgroup/memory.reclaim
+/sys/fs/cgroup/hugetlb.1GB.current	  /sys/fs/cgroup/memory.stat
+/sys/fs/cgroup/hugetlb.1GB.events	  /sys/fs/cgroup/memory.swap.current
+/sys/fs/cgroup/hugetlb.1GB.events.local   /sys/fs/cgroup/memory.swap.events
+/sys/fs/cgroup/hugetlb.1GB.max		  /sys/fs/cgroup/memory.swap.high
+/sys/fs/cgroup/hugetlb.1GB.numa_stat	  /sys/fs/cgroup/memory.swap.max
+/sys/fs/cgroup/hugetlb.1GB.rsvd.current   /sys/fs/cgroup/memory.swap.peak
+/sys/fs/cgroup/hugetlb.1GB.rsvd.max	  /sys/fs/cgroup/memory.zswap.current
+/sys/fs/cgroup/hugetlb.2MB.current	  /sys/fs/cgroup/memory.zswap.max
+/sys/fs/cgroup/hugetlb.2MB.events	  /sys/fs/cgroup/pids.current
+/sys/fs/cgroup/hugetlb.2MB.events.local   /sys/fs/cgroup/pids.events
+/sys/fs/cgroup/hugetlb.2MB.max		  /sys/fs/cgroup/pids.max
+/sys/fs/cgroup/hugetlb.2MB.numa_stat	  /sys/fs/cgroup/pids.peak
+/sys/fs/cgroup/hugetlb.2MB.rsvd.current   /sys/fs/cgroup/rdma.current
+/sys/fs/cgroup/hugetlb.2MB.rsvd.max	  /sys/fs/cgroup/rdma.max
+/sys/fs/cgroup/hugetlb.32MB.current	  /sys/fs/cgroup/sys-fs-fuse-connections.mount
+/sys/fs/cgroup/hugetlb.32MB.events	  /sys/fs/cgroup/sys-kernel-config.mount
+/sys/fs/cgroup/hugetlb.32MB.events.local  /sys/fs/cgroup/sys-kernel-debug.mount
+/sys/fs/cgroup/hugetlb.32MB.max		  /sys/fs/cgroup/sys-kernel-tracing.mount
+/sys/fs/cgroup/hugetlb.32MB.numa_stat	  /sys/fs/cgroup/system.slice
+```
+> In cgroup v2, specific controllers like blkio have been consolidated under the unified io controller. 
+
+</details>
+
+With an understanding of cgroups, let's explore how they are used in the kubelet, specifically through the `allocatable` data structure. Examining a Kubernetes node (you can do this with your kind cluster), the output from `kubectl get nodes -o yaml` shows:
+
+root@kind-control-plane:/# kubectl get nodes -o yaml 
+<details><summary><code>root@kind-control-plane:/# kubectl get nodes -o yaml </code></summary>
+<br> 
+  
+```yaml
+apiVersion: v1
+items:
+- apiVersion: v1
+  kind: Node
+  metadata:
+    annotations:
+      kubeadm.alpha.kubernetes.io/cri-socket: unix:///run/containerd/containerd.sock
+      node.alpha.kubernetes.io/ttl: "0"
+      volumes.kubernetes.io/controller-managed-attach-detach: "true"
+    creationTimestamp: "2024-10-21T10:23:30Z"
+    labels:
+      beta.kubernetes.io/arch: arm64
+      beta.kubernetes.io/os: linux
+      kubernetes.io/arch: arm64
+      kubernetes.io/hostname: kind-control-plane
+      kubernetes.io/os: linux
+      node-role.kubernetes.io/control-plane: ""
+    name: kind-control-plane
+    resourceVersion: "836"
+    uid: 9c74ecaf-24c3-4eda-ad43-a475fc90cdba
+  spec:
+    podCIDR: 10.244.0.0/24
+    podCIDRs:
+    - 10.244.0.0/24
+    providerID: kind://docker/kind/kind-control-plane
+  status:
+    addresses:
+    - address: 172.18.0.2
+      type: InternalIP
+    - address: kind-control-plane
+      type: Hostname
+    allocatable:                          [1] 
+      cpu: "8"
+      ephemeral-storage: 235280588Ki
+      hugepages-1Gi: "0"
+      hugepages-2Mi: "0"
+      hugepages-32Mi: "0"
+      hugepages-64Ki: "0"
+      memory: 8131696Ki
+      pods: "110"
+    capacity:
+      cpu: "8"
+      ephemeral-storage: 235280588Ki
+      hugepages-1Gi: "0"
+      hugepages-2Mi: "0"
+      hugepages-32Mi: "0"
+      hugepages-64Ki: "0"
+      memory: 8131696Ki
+      pods: "110"
+
+```
+> [1] These values represent the cgroup resources available for Pods, indicating the limits for CPU, memory, and other resources. The kubelet determines these values by calculating the node's total capacity and then subtracting the CPU and memory it needs for itself and the node's system processes. The remaining resources form the allocatable budget available for containers. (<ins>**Allocatable resource budget**</ins> = node capacity - `kubeReserved` - `systemReserved`)
+
+</details>
+
+To understand how this applies to a running container:
+
+- The kubelet creates cgroups when Pods are launched, limiting their resource usage based on the Pod specifications.
+- `systemd` usually manages the kubelet, which periodically reports available node resources to the Kubernetes API.
+- `systemd` also typically manages the container runtime, ensuring it runs alongside the kubelet.
+- The container runtime (e.g., containerd, CRI-O, or Docker) starts the container process within these cgroups, ensuring it adheres to the specified resource limits.
+
+<ins>Kubernetes disables swap to ensure predictable resource allocation</ins>. By doing so, it avoids slowing down memory access for Pods, which could violate their guaranteed memory limits and lead to unpredictable performance.
+
+Cgroups manage memory usage with two types of limits:
+
+- **Soft limits**: Allow processes to use varying amounts of RAM based on system load.
+- **Hard limits**: Terminate processes that exceed their memory limit for too long.
+
+Kubernetes enforces hard limits, reporting an exit code and `OOMKilled` status when a process is terminated for exceeding these limits.
+
+### QoS classes: Why they matter and how they work 
+
+<ins>**Quality of Service** (QoS) refers to the availability of resources when needed</ins>. It helps maintain the performance of critical services while allowing less important services to operate suboptimally during peak times. Kubernetes defines three QoS classes based on how you configure a Pod:
+
+- <ins>**BestEffort Pods**</ins>: Pods with no CPU or memory requests. They are easily killed or displaced when resources are scarce and may be rescheduled on a new node.
+- <ins>**Burstable Pods**</ins>: Pods with defined memory or CPU requests but without limits for all classes. They are less likely to be displaced than BestEffort Pods.
+- <ins>**Guaranteed Pods**</ins>: Pods with both CPU and memory requests. They are the least likely to be displaced compared to Burstable Pods.
+
+When you run `kubectl get pods -o yaml`, you'll see the Burstable class assigned to your Pod's status field. During peak times, use this technique to ensure that critical processes are assigned a Guaranteed or Burstable status.
+
+<details><summary><code>root@kind-control-plane:/# kubectl get pods -o yaml </code></summary>
+
+<br>
+
+```yaml
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    creationTimestamp: "2024-10-21T11:09:54Z"
+    generateName: nginx-6d65c5c6cb-
+    labels:
+      app: nginx
+      pod-template-hash: 6d65c5c6cb
+    name: nginx-6d65c5c6cb-zncnw
+    namespace: default
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: nginx-6d65c5c6cb
+      uid: dc09217b-d518-4b97-acc1-7421e8623758
+    resourceVersion: "4092"
+    uid: 9b3f8262-c12d-407d-82ec-6222b9bb352d
+  spec:
+    containers:
+    - image: nginx
+      imagePullPolicy: Always
+      name: nginx
+      ports:
+      - containerPort: 80
+        protocol: TCP
+      resources:
+        requests:
+          cpu: "1"
+          memory: 3G
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-v67hh
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: kind-control-plane
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: kube-api-access-v67hh
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken:
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2024-10-21T11:10:18Z"
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2024-10-21T11:09:54Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2024-10-21T11:10:18Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2024-10-21T11:10:18Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2024-10-21T11:09:54Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: containerd://21465a16f6f1e6566ceb03a4529018895c8fce656cd8d26b46f286e1011687e0
+      image: docker.io/library/nginx:latest
+      imageID: docker.io/library/nginx@sha256:28402db69fec7c17e179ea87882667f1e054391138f77ffaf0c3eb388efc3ffb
+      lastState: {}
+      name: nginx
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2024-10-21T11:10:18Z"
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-v67hh
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 172.18.0.2
+    hostIPs:
+    - ip: 172.18.0.2
+    phase: Running
+    podIP: 10.244.0.6
+    podIPs:
+    - ip: 10.244.0.6
+    qosClass: Burstable     [1]
+    startTime: "2024-10-21T11:09:54Z"
+kind: List
+metadata:
+  resourceVersion: ""
+```
+> [1] The line indicates the Pod is **Burstable**, allowing it to use extra resources if available.
+
+</details>
+
+### Monitoring the Linux kernel with Prometheus, cAdvisor, and the API server
+
+More of this notes are coming up .. 👨🏻‍💻
+
 </details>
 
 <details>
