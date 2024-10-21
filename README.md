@@ -1122,7 +1122,7 @@ When you run `kubectl get pods -o yaml`, you'll see the Burstable class assigned
     podIP: 10.244.0.6
     podIPs:
     - ip: 10.244.0.6
-    qosClass: Burstable     [1]
+    qosClass: Burstable                 [1]
     startTime: "2024-10-21T11:09:54Z"
 kind: List
 metadata:
