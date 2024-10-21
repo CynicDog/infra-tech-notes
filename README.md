@@ -983,7 +983,7 @@ Cgroups manage memory usage with two types of limits:
 - **Soft limits**: Allow processes to use varying amounts of RAM based on system load.
 - **Hard limits**: Terminate processes that exceed their memory limit for too long.
 
-Kubernetes enforces hard limits, reporting an exit code and `OOMKilled` status when a process is terminated for exceeding these limits.
+<ins>Kubernetes enforces hard limits</ins>, reporting an exit code and `OOMKilled` status when a process is terminated for exceeding these limits.
 
 ### QoS classes: Why they matter and how they work 
 
