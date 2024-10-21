@@ -852,7 +852,7 @@ In conclusion, the isolation provided by Kubernetes can be understood on a Linux
 
 ### How the kubelet manages cgroups 
 
-While most focus on CPU and memory isolation, understanding others is useful. For example, the freezer cgroup manages groups of tasks for pausing and resuming, though Kubernetes doesn’t fully utilize this. The blkio cgroup handles I/O management, and `/sys/fs/cgroup` shows how resources are allocated in Linux. 
+While most focus on CPU and memory isolation, understanding others is useful. For example, the `freezer` cgroup manages groups of tasks for pausing and resuming, though Kubernetes doesn’t fully utilize this. The `blkio` cgroup handles I/O management, and `/sys/fs/cgroup` shows how resources are allocated in Linux. 
 
 <details><summary><code>root@kind-control-plane:/# ls -d /sys/fs/cgroup/*<br> </code></summary>
 
