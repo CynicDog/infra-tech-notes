@@ -721,7 +721,7 @@ The life cycle of a Kubernetes installation using kubeadm, the most common insta
 3. The kubelet instructs containerd (or the configured container runtime) to start all processes listed in the manifests directory.
 4. Once the API server is up and running, the kubelet connects to it and executes any containers requested by the API server.
 
-A **<ins>mirror Pod</ins>** is a special type of Pod that the Kubernetes scheduler uses to manage resources. `kube-apiserver-kind-control-plane` is an example of a mirror Pod. However, the API server does not recognize this mirror Pod because it is created directly by the kubelet (the node agent that runs on each worker node).
+A **<ins>mirror Pod</ins>** is a special type of Pod that the Kubernetes scheduler uses to manage resources. `kube-scheduler-kind-control-plane` is an example of a mirror Pod. However, the API server does not recognize this mirror Pod because it is created directly by the kubelet (the node agent that runs on each worker node).
 
 Run the following command on your mahcine to see details: 
 
