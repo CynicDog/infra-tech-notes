@@ -1134,7 +1134,31 @@ metadata:
 
 ### Monitoring the Linux kernel with Prometheus, cAdvisor, and the API server
 
-More of this notes are coming up .. 👨🏻‍💻
+In theory, a metric is any measurable value. The three fundamental types of metrics we focus on are histograms, gauges, and counters.
+
+- **Gauges**: Measure the rate of requests per second at a specific moment in time.  
+- **Histograms**: Track the distribution of event durations, such as the number of requests completed within different time ranges (e.g., under 500 ms).  
+- **Counters**: Record a continuously increasing count of events, like the total number of requests processed.  
+
+Metrics are crucial for containerized and cloud-based applications, but they need to be managed in a lightweight, decoupled way. Prometheus provides the tools to scale metrics collection without adding unnecessary overhead or complexity. This is achieved by integrating a Prometheus handler into a REST API server, which exposes a single meaningful endpoint: `/metrics`.
+
+You can check if requests for Pods are straining your Kubernetes API server by running the following commands in your terminal (assuming your kind cluster is up and running). In a separate terminal, execute the `kubectl proxy` command, then use `curl` to access the API server’s metrics endpoint:
+
+```
+PS C:\Users> kubectl proxy
+Starting to serve on 127.0.0.1:8001
+```
+
+Then you can make a GET request to the endpoint `/metrics` as follows: 
+```
+PS C:\Users> http 127.0.0.1:8001/metrics
+apiserver_request_sli_duration_seconds_bucket{component="apiserver",group="batch",resource="jobs",scope="cluster",subresource="",verb="LIST",version="v1",le="0.2"} 1
+apiserver_request_sli_duration_seconds_bucket{component="apiserver",group="batch",resource="jobs",scope="cluster",subresource="",verb="LIST",version="v1",le="0.4"} 1
+apiserver_request_sli_duration_seconds_bucket{component="apiserver",group="batch",resource="jobs",scope="cluster",subresource="",verb="LIST",version="v1",le="0.6"} 1
+apiserver_request_sli_duration_seconds_bucket{component="apiserver",group="batch",resource="jobs",scope="cluster",subresource="",verb="LIST",version="v1",le="0.8"} 1
+...
+```
+
 
 </details>
 
