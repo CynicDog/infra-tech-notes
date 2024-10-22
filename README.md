@@ -1163,11 +1163,15 @@ apiserver_request_sli_duration_seconds_bucket{component="apiserver",group="batch
 ...
 ```
 
-
 </details>
 
 <details>
 <summary><h3>CH5. CNIs and providing the Pod with a network</h3></summary>
+
+<ins>**Software-Defined Networking** (SDN)</ins> traditionally manages load balancing, isolation, and security for VMs in the cloud and on-premises data centers. It simplifies network reconfiguration for system administrators, enabling changes as frequently as daily with the creation or deletion of VMs. In the era of containers, SDN gains new significance, as networks in large Kubernetes clusters change constantly, necessitating software automation. The Kubernetes network is fully software-defined and dynamic, reflecting the ephemeral nature of Pods and service endpoints.
+
+We'll explore Pod-to-Pod networking, focusing on how hundreds or thousands of containers on a machine can have unique, cluster-routable IP addresses. Kubernetes achieves this through the <ins>**Container Network Interface** (CNI)</ins> standard, which allows various technologies to provide each Pod with a unique routable IP address in a modular and extensible manner.
+
 </details>
 
 <details>
