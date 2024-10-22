@@ -1132,7 +1132,7 @@ metadata:
 
 </details>
 
-### Monitoring the Linux kernel with Prometheus, cAdvisor, and the API server
+### Monitoring the Linux kernel
 
 In theory, a metric is any measurable value. The three fundamental types of metrics we focus on are histograms, gauges, and counters.
 
@@ -1140,7 +1140,7 @@ In theory, a metric is any measurable value. The three fundamental types of metr
 - **Histograms**: Track the distribution of event durations, such as the number of requests completed within different time ranges (e.g., under 500 ms).  
 - **Counters**: Record a continuously increasing count of events, like the total number of requests processed.  
 
-Metrics are crucial for containerized and cloud-based applications, but they need to be managed in a lightweight, decoupled way. Prometheus provides the tools to scale metrics collection without adding unnecessary overhead or complexity. This is achieved by integrating a Prometheus handler into a REST API server, which exposes a single meaningful endpoint: `/metrics`.
+Metrics are crucial for containerized and cloud-based applications, but they need to be managed in a lightweight, decoupled way. This is achieved by integrating a Prometheus handler into a REST API server, which exposes a single meaningful endpoint: `/metrics`.
 
 You can check if requests for Pods are straining your Kubernetes API server by running the following commands in your terminal (assuming your kind cluster is up and running). In a separate terminal, execute the `kubectl proxy` command, then use `curl` to access the API server’s metrics endpoint:
 
