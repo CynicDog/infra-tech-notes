@@ -1172,6 +1172,29 @@ apiserver_request_sli_duration_seconds_bucket{component="apiserver",group="batch
 
 We'll explore Pod-to-Pod networking, focusing on how hundreds or thousands of containers on a machine can have unique, cluster-routable IP addresses. Kubernetes achieves this through the <ins>**Container Network Interface** (CNI)</ins> standard, which allows various technologies to provide each Pod with a unique routable IP address in a modular and extensible manner.
 
+Kube-proxy manages <ins>**iptables rules**</ins> for <ins>nftables, IPVS (IP Virtual Server), and other network proxy implementations</ins>. It creates various `KUBE-SEP` rules that <ins>instruct the Linux kernel to masquerade traffic</ins>, meaning <ins>traffic leaving a container is marked as originating from a node, or to NAT traffic via a service IP</ins>. This traffic is then forwarded to a running Pod, which may often reside on a different node within the cluster.
+
+Kube-proxy routes services to Pods, like when exposing an app via a node port. Its job is to map service IPs to Pod IPs, but it depends on a strong Pod network. If Pod IPs aren’t routable between nodes, kube-proxy’s routing fails, making the application inaccessible. Essentially, a load balancer remains the only reliable option.
+
+### Why we need software-defined networks in Kubernetes
+
+The container networking challenge is routing traffic consistently to the correct Pods, even as they move. Kubernetes solves this with two key tools:
+
+- <ins>**Service Proxy**</ins>: Ensures stable IPs and load balances traffic across Pods behind a service.
+- <ins>**CNI**</ins>: Maintains a flat, accessible network for Pods to be continually recreated within the cluster.
+
+At the core of the solution is the <ins>**ClusterIP**</ins> service, a Kubernetes Service that <ins>routes traffic within the cluster</ins> but is not accessible externally. It serves as a foundational component for building other services.
+
+We can see how new IP addresses are easily assigned when creating Pods. Since our kind cluster has two running CoreDNS Pods, we can verify their IP addresses to confirm this:
+```bash
+root@kind-control-plane:/# kubectl get pods -A -o wide | grep coredns
+kube-system   coredns-7db6d8ff4d-9jk7h  1/1   Running   8 (6h1m ago)   10d   10.244.0.3   kind-control-plane   <none>  <none>
+kube-system   coredns-7db6d8ff4d-jrsm6  1/1   Running   8 (6h1m ago)   10d   10.244.0.2   kind-control-plane   <none>  <none>
+```
+
+Kubernetes offers three main types of Service objects: <ins>**ClusterIP**</ins>, <ins>**NodePort**</ins>, and <ins>**LoadBalancer**</ins>. These Services determine which backend Pods to connect to using labels.
+
+
 </details>
 
 <details>
