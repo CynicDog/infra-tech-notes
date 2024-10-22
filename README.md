@@ -721,7 +721,11 @@ The life cycle of a Kubernetes installation using kubeadm, the most common insta
 3. The kubelet instructs containerd (or the configured container runtime) to start all processes listed in the manifests directory.
 4. Once the API server is up and running, the kubelet connects to it and executes any containers requested by the API server.
 
-A **<ins>mirror Pod</ins>** is a special type of Pod that the Kubernetes scheduler uses to manage resources. `kube-scheduler-kind-control-plane` is an example of a mirror Pod. However, the API server does not recognize this mirror Pod because it is created directly by the kubelet (the node agent that runs on each worker node).
+<ins>Static Pods</ins> are managed directly by the kubelet daemon on a specific node, without the API server observing them. Unlike Pods managed by the control plane (e.g., Deployments), the kubelet monitors and restarts static Pods if they fail, ensuring high availability.
+
+The `kube-scheduler-kind-control-plane` is an example of a static Pod, which the kubelet manages. The corresponding mirror Pod is created for it in the API.
+
+Static Pods are always bound to a single kubelet on a specific node, making them ideal for critical workloads. The kubelet automatically creates a <ins>mirror Pod</ins> for each static Pod, allowing visibility in the API without control plane management.
 
 Run the following command on your mahcine to see details: 
 
