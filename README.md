@@ -1174,7 +1174,7 @@ We'll explore Pod-to-Pod networking, focusing on how hundreds or thousands of co
 
 Kube-proxy manages <ins>**iptables rules**</ins> for <ins>nftables, IPVS (IP Virtual Server), and other network proxy implementations</ins>. It creates various `KUBE-SEP` rules that <ins>instruct the Linux kernel to masquerade traffic</ins>, meaning <ins>traffic leaving a container is marked as originating from a node, or to NAT traffic via a service IP</ins>. This traffic is then forwarded to a running Pod, which may often reside on a different node within the cluster.
 
-Kube-proxy routes services to Pods, like when exposing an app via a node port. Its job is to map service IPs to Pod IPs, but it depends on a strong Pod network. If Pod IPs aren’t routable between nodes, kube-proxy’s routing fails, making the application inaccessible. Essentially, a load balancer remains the only reliable option.
+<ins>Kube-proxy routes services to Pods</ins>, like when exposing an app via a node port. <ins>Its job is to map service IPs to Pod IPs</ins>, but it depends on a strong Pod network. If Pod IPs aren’t routable between nodes, kube-proxy’s routing fails, making the application inaccessible. Essentially, a load balancer remains the only reliable option.
 
 ### Why we need software-defined networks in Kubernetes
 
@@ -1194,6 +1194,125 @@ kube-system   coredns-7db6d8ff4d-jrsm6  1/1   Running   8 (6h1m ago)   10d   10.
 
 Kubernetes offers three main types of Service objects: <ins>**ClusterIP**</ins>, <ins>**NodePort**</ins>, and <ins>**LoadBalancer**</ins>. These Services determine which backend Pods to connect to using labels.
 
+In SDN framework, kube-proxy plays a crucial role by maintaining network rules on each node. It watches for changes in the Services and updates the underlying routing rules so that traffic can reach the correct Pods, even when Pods or IPs change. This ensures that communication between Services and Pods remains consistent, making kube-proxy a key component of Kubernetes' SDN architecture.
+
+### The kube-proxy's data plane 
+
+We find that **kube-proxy** is split into two control paths: `server_windows.go` and `server_others.go`. The `server_windows.go` file is compiled into `kube-proxy.exe`, which makes native calls to Windows system APIs. These include the `netsh` command for the userspace proxy and the `hcsshim` and HCN containerization APIs for the Windows kernel proxy.
+
+In most cases, **kube-proxy** runs on Linux, where a different binary (also called `kube-proxy`) is used without the Windows functionality. On Linux, it typically uses the **iptables** proxy. In kind clusters, **kube-proxy** defaults to **iptables mode**, which can be confirmed by running:
+
+
+<details><summary><code>root@kind-control-plane:/# kubectl edit cm kube-proxy -n kube-system<br></code></summary>
+<br>
+
+
+```yaml
+apiVersion: v1
+data:
+  config.conf: |-
+    apiVersion: kubeproxy.config.k8s.io/v1alpha1
+    bindAddress: 0.0.0.0
+    bindAddressHardFail: false
+    clientConnection:
+      acceptContentTypes: ""
+      burst: 0
+      contentType: ""
+      kubeconfig: /var/lib/kube-proxy/kubeconfig.conf
+      qps: 0
+    clusterCIDR: 10.244.0.0/16
+    configSyncPeriod: 0s
+    conntrack:
+      maxPerCore: 0
+      min: null
+      tcpBeLiberal: false
+      tcpCloseWaitTimeout: null
+      tcpEstablishedTimeout: null
+      udpStreamTimeout: 0s
+      udpTimeout: 0s
+    detectLocal:
+      bridgeInterface: ""
+      interfaceNamePrefix: ""
+    detectLocalMode: ""
+    enableProfiling: false
+    healthzBindAddress: ""
+    hostnameOverride: ""
+    iptables:
+      localhostNodePorts: null
+      masqueradeAll: false
+      masqueradeBit: null
+      minSyncPeriod: 1s
+      syncPeriod: 0s
+    ipvs:
+      excludeCIDRs: null
+      minSyncPeriod: 0s
+      scheduler: ""
+      strictARP: false
+      syncPeriod: 0s
+      tcpFinTimeout: 0s
+      tcpTimeout: 0s
+      udpTimeout: 0s
+    kind: KubeProxyConfiguration
+    logging:
+      flushFrequency: 0
+      options:
+        json:
+          infoBufferSize: "0"
+        text:
+          infoBufferSize: "0"
+      verbosity: 0
+    metricsBindAddress: ""
+    mode: iptables
+    nftables:
+      masqueradeAll: false
+      masqueradeBit: null
+      minSyncPeriod: 0s
+      syncPeriod: 0s
+    nodePortAddresses: null
+    oomScoreAdj: null
+    portRange: ""
+    showHiddenMetricsForVersion: ""
+    winkernel:
+      enableDSR: false
+      forwardHealthCheckVip: false
+      networkName: ""
+      rootHnsEndpointName: ""
+      sourceVip: ""
+  kubeconfig.conf: |-
+    apiVersion: v1
+    kind: Config
+    clusters:
+    - cluster:
+        certificate-authority: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        server: https://kind-control-plane:6443
+      name: default
+    contexts:
+    - context:
+        cluster: default
+        namespace: default
+        user: default
+      name: default
+    current-context: default
+    users:
+    - name: default
+      user:
+        tokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+kind: ConfigMap
+metadata:
+  creationTimestamp: "2024-10-23T08:13:15Z"
+  labels:
+    app: kube-proxy
+  name: kube-proxy
+  namespace: kube-system
+  resourceVersion: "228"
+  uid: 59a420cd-4d02-40f2-891c-bdb9e44eb7c5
+~                                                    
+```
+
+</details>
+
+
+and checking the `mode` field.
 
 </details>
 
