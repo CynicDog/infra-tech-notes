@@ -645,6 +645,12 @@ But how do Kubernetes Services route traffic to these devices? We can find the a
   -A KUBE-SVC-TCOU7JCQXEZGVUNU -m comment --comment "kube-system/kube-dns:dns -> 10.244.0.4:53" -j KUBE-SEP-WXWGHGKZOCNYRYI7
   ```
   > [1] In the command, the `-j` option directs any access to the rule `KUBE-SEP-IT2ZTR26TO4XFPTO` to jump to the `KUBE-MARK-MASQ` rule.
+  > 
+  > When a request is made to a service, kube-proxy relies on these rules to determine where to forward the traffic. It uses the rules to:
+  >
+  > 1. Identify the service (via the KUBE-SVC rules).
+  > 2. Determine the available endpoints (via the KUBE-SEP rules) for that service.
+  > 3. Route the traffic to one of the pod endpoints, using the DNAT rules for destination address translation.
 
 </details>
 
@@ -1202,10 +1208,8 @@ We find that **kube-proxy** is split into two control paths: `server_windows.go`
 
 In most cases, **kube-proxy** runs on Linux, where a different binary (also called `kube-proxy`) is used without the Windows functionality. On Linux, it typically uses the **iptables** proxy. In kind clusters, **kube-proxy** defaults to **iptables mode**, which can be confirmed by running:
 
-
 <details><summary><code>root@kind-control-plane:/# kubectl edit cm kube-proxy -n kube-system<br></code></summary>
 <br>
-
 
 ```yaml
 apiVersion: v1
@@ -1262,7 +1266,7 @@ data:
           infoBufferSize: "0"
       verbosity: 0
     metricsBindAddress: ""
-    mode: iptables
+    mode: iptables               [1] 
     nftables:
       masqueradeAll: false
       masqueradeBit: null
@@ -1308,6 +1312,7 @@ metadata:
   uid: 59a420cd-4d02-40f2-891c-bdb9e44eb7c5
 ~                                                    
 ```
+> The kube-proxy mode is set to `iptables`.
 
 </details>
 
@@ -1382,10 +1387,285 @@ Running the command below will see that random ports (`30247`, `32585`) assigned
 
 ```bash
 root@kind-control-plane:/# kubectl get svc -A
-NAMESPACE     NAME         TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)                                    AGE
-default       kubernetes   ClusterIP   10.96.0.1    <none>        443/TCP                                    13d
-kube-system   kube-dns     NodePort    10.96.0.10   <none>        53:30247/UDP,53:32585/TCP,9153:31915/TCP   13d
+NAMESPACE     NAME         TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)                                         AGE
+default       kubernetes   ClusterIP   10.96.0.1    <none>        443/TCP                                         13d
+kube-system   kube-dns     NodePort    10.96.0.10   <none>        53:30247/UDP,53:32585/TCP,9153:31915/TCP   [1]  13d    
 ```
+> [1] With service type of `ClusterIP`, it used to look like `53/UDP,53/TCP,9153/TCP`, with no random ports assigned. 
+
+The random ports are mapped to port 53 from our DNS service Pods and are open on all cluster nodes, as each node runs kube-proxy.
+
+### CNI Providers 
+
+CNI providers implement the CNI specification, which outlines a contract that enables container runtimes to request a valid IP address for a process when it starts up. A CNI provider implements three key CNI operations: ADD, DELETE, and CHECK, which are invoked when containerd starts or deletes a Pod. CNIs are said to be configured once a CNI container writes a /etc/cni/net.d file on a kubelet’s local filesystem.
+
+When a Pod is created, the CNI provider assigns it an IP address, allowing the Pod to communicate with other Pods and services within the cluster.
+
+- **Calico**: is a networking and security solution for containers that uses a Layer 3 approach and supports IPv4 and IPv6, offering network policy enforcement and IP address management.
+
+- **Flannel**: is a simple overlay network for Kubernetes that creates a Layer 3 network between containers, supporting various backends like VXLAN and host-gw.
+
+- **Weave Net**: provides an easy-to-use overlay network with features like automatic service discovery, traffic encryption, and basic network policy management.
+
+- **Cilium**: leverages eBPF technology for advanced networking capabilities, including dynamic load balancing and strong security measures.
+
+- **Kube-Router**: integrates routing, load balancing, and network policy enforcement using standard Linux networking and supports BGP for route propagation.
+
+- **Romana**: focuses on Layer 3 networking with integrated security policies, supporting IP address management and network isolation.
+
+- **Antrea**: offers advanced networking features based on Open vSwitch, including network policies and traffic visibility, suitable for enterprise environments.
+
+- **Contiv**: emphasizes policy-driven networking for microservices and supports multiple network models.
+
+- **OpenShift SDN**: is integrated into OpenShift, supporting various networking models and providing multi-tenancy and service discovery.
+
+- **Amazon VPC CNI**: integrates Kubernetes Pods with AWS VPC networking, allowing Pods to use IP addresses from the VPC subnet for seamless communication with AWS resources.
+
+For our part, we will install the Calico provider and complete the implementation of CNI in our Kubernetes cluster.
+
+#### Create a deedicated cluster
+
+The first is to create a `kind-Calico-conf.yaml` that looks as below: 
+
+```yaml
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+networking:
+  disableDefaultCNI: true
+  podSubnet: 192.168.0.0/16
+nodes:
+- role: control-plane
+- role: worker
+```
+
+Then, run the following command to create a cluster: 
+
+```bash
+PS C:\Users> kind create cluster --name=calico --config=./kind-Calico-conf.yaml
+```
+
+It's important to note what happens when a Pod's CNI isn't available, leading to unschedulable Pods that aren't listed in the kubelet/manifests directory. You can observe this by running the following kubectl commands:
+
+```bash
+PS C:\Users> kubectl get pods -A
+NAMESPACE            NAME                                           READY   STATUS    RESTARTS   AGE
+kube-system          coredns-7db6d8ff4d-jfhw9                       0/1     Pending   0          3m6s
+kube-system          coredns-7db6d8ff4d-k6kjv                       0/1     Pending   0          3m6s
+...
+```
+
+#### Install Calico CNI provider 
+
+To download the Calico configuration file and create according resources, run: 
+```bash
+root@calico-control-plane:/# curl -O https://calico-v3-25.netlify.app/archive/v3.25/manifests/Calico.yaml
+root@calico-control-plane:/# kubectl create -f Calico.yaml
+```
+
+You will then see the resources are correctly in place by running:
+
+<details><summary><code>root@calico-control-plane:/# kubectl get pods --all-namespaces -o wide</code><br></summary>
+<br>
+
+```bash
+NAMESPACE            NAME                                           READY   STATUS    RESTARTS   AGE     IP              NODE                   NOMINATED NODE   READINESS GATES
+kube-system          calico-kube-controllers-5b9b456c66-p5wb5       1/1     Running   0          7m53s   192.168.9.131   calico-worker          <none>           <none>
+kube-system          calico-node-54gt9                              1/1     Running   0          7m54s   172.18.0.4      calico-control-plane   <none>           <none>
+kube-system          calico-node-8f2r8                              1/1     Running   0          7m54s   172.18.0.3      calico-worker          <none>           <none>
+kube-system          coredns-7db6d8ff4d-jfhw9                       1/1     Running   0          24m     192.168.9.129   calico-worker          <none>           <none>
+kube-system          coredns-7db6d8ff4d-k6kjv                       1/1     Running   0          24m     192.168.9.132   calico-worker          <none>           <none>
+kube-system          etcd-calico-control-plane                      1/1     Running   0          24m     172.18.0.4      calico-control-plane   <none>           <none>
+kube-system          kube-apiserver-calico-control-plane            1/1     Running   0          24m     172.18.0.4      calico-control-plane   <none>           <none>
+kube-system          kube-controller-manager-calico-control-plane   1/1     Running   0          24m     172.18.0.4      calico-control-plane   <none>           <none>
+kube-system          kube-proxy-rc2pk                               1/1     Running   0          24m     172.18.0.3      calico-worker          <none>           <none>
+kube-system          kube-proxy-scthx                               1/1     Running   0          24m     172.18.0.4      calico-control-plane   <none>           <none>
+kube-system          kube-scheduler-calico-control-plane            1/1     Running   0          24m     172.18.0.4      calico-control-plane   <none>           <none>
+local-path-storage   local-path-provisioner-988d74bc-phz5f          1/1     Running   0          24m     192.168.9.130   calico-worker          <none>           <none>
+```
+</details>
+
+Calico sets up a <ins>**DaemonSet**</ins> in Kubernetes to run its components on every node in the cluster. This is essential for managing networking for the Pods. 
+
+The coordination container in Calico is responsible for tasks like aggregating or proxying metadata from Kubernetes, for example, aggregating NetworkPolicy information in a single place so that it can easily be consumed and deduplicated by the DaemonSet Pods.
+
+Within this DaemonSet, there’s often a <ins>**coordination container**</ins> (like **calico-node**) that handles key network operations. This container configures network interfaces, sets up routes, manages network policies, and ensures connectivity between Pods across different nodes. 
+
+You can list such Calico DaemonSet by running:  
+```bash
+root@calico-control-plane:/# kubectl get daemonsets -n kube-system
+NAME          DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR            AGE
+calico-node   2         2         2       2            2           kubernetes.io/os=linux   12m
+kube-proxy    2         2         2       2            2           kubernetes.io/os=linux   29m
+```
+
+Let's look into details of the `calico-node` container: 
+
+<details><summary><code>root@calico-control-plane:/# kubectl describe daemonset calico-node -n kube-system</code><br></summary>
+<br>
+
+```bash
+Name:           calico-node
+Selector:       k8s-app=calico-node
+Node-Selector:  kubernetes.io/os=linux
+Labels:         k8s-app=calico-node
+Annotations:    deprecated.daemonset.template.generation: 1
+Desired Number of Nodes Scheduled: 2
+Current Number of Nodes Scheduled: 2
+Number of Nodes Scheduled with Up-to-date Pods: 2
+Number of Nodes Scheduled with Available Pods: 2
+Number of Nodes Misscheduled: 0
+Pods Status:  2 Running / 0 Waiting / 0 Succeeded / 0 Failed
+Pod Template:
+  Labels:           k8s-app=calico-node
+  Service Account:  calico-node
+  Init Containers:
+   upgrade-ipam:
+    Image:      docker.io/calico/cni:v3.25.0
+    Port:       <none>
+    Host Port:  <none>
+    Command:
+      /opt/cni/bin/calico-ipam
+      -upgrade
+    Environment Variables from:
+      kubernetes-services-endpoint  ConfigMap  Optional: true
+    Environment:
+      KUBERNETES_NODE_NAME:        (v1:spec.nodeName)
+      CALICO_NETWORKING_BACKEND:  <set to the key 'calico_backend' of config map 'calico-config'>  Optional: false
+    Mounts:
+      /host/opt/cni/bin from cni-bin-dir (rw)
+      /var/lib/cni/networks from host-local-net-dir (rw)
+   install-cni:
+    Image:      docker.io/calico/cni:v3.25.0
+    Port:       <none>
+    Host Port:  <none>
+    Command:
+      /opt/cni/bin/install
+    Environment Variables from:
+      kubernetes-services-endpoint  ConfigMap  Optional: true
+    Environment:
+      CNI_CONF_NAME:         10-calico.conflist
+      CNI_NETWORK_CONFIG:    <set to the key 'cni_network_config' of config map 'calico-config'>  Optional: false
+      KUBERNETES_NODE_NAME:   (v1:spec.nodeName)
+      CNI_MTU:               <set to the key 'veth_mtu' of config map 'calico-config'>  Optional: false
+      SLEEP:                 false
+    Mounts:
+      /host/etc/cni/net.d from cni-net-dir (rw)
+      /host/opt/cni/bin from cni-bin-dir (rw)
+   mount-bpffs:
+    Image:      docker.io/calico/node:v3.25.0
+    Port:       <none>
+    Host Port:  <none>
+    Command:
+      calico-node
+      -init
+      -best-effort
+    Environment:  <none>
+    Mounts:
+      /nodeproc from nodeproc (ro)
+      /sys/fs from sys-fs (rw)
+      /var/run/calico from var-run-calico (rw)
+  Containers:
+   calico-node:
+    Image:      docker.io/calico/node:v3.25.0
+    Port:       <none>
+    Host Port:  <none>
+    Requests:
+      cpu:      250m
+    Liveness:   exec [/bin/calico-node -felix-live -bird-live] delay=10s timeout=10s period=10s #success=1 #failure=6
+    Readiness:  exec [/bin/calico-node -felix-ready -bird-ready] delay=0s timeout=10s period=10s #success=1 #failure=3
+    Environment Variables from:
+      kubernetes-services-endpoint  ConfigMap  Optional: true
+    Environment:
+      DATASTORE_TYPE:                     kubernetes
+      WAIT_FOR_DATASTORE:                 true
+      NODENAME:                            (v1:spec.nodeName)
+      CALICO_NETWORKING_BACKEND:          <set to the key 'calico_backend' of config map 'calico-config'>  Optional: false
+      CLUSTER_TYPE:                       k8s,bgp
+      IP:                                 autodetect
+      CALICO_IPV4POOL_IPIP:               Always
+      CALICO_IPV4POOL_VXLAN:              Never
+      CALICO_IPV6POOL_VXLAN:              Never
+      FELIX_IPINIPMTU:                    <set to the key 'veth_mtu' of config map 'calico-config'>  Optional: false
+      FELIX_VXLANMTU:                     <set to the key 'veth_mtu' of config map 'calico-config'>  Optional: false
+      FELIX_WIREGUARDMTU:                 <set to the key 'veth_mtu' of config map 'calico-config'>  Optional: false
+      CALICO_DISABLE_FILE_LOGGING:        true
+      FELIX_DEFAULTENDPOINTTOHOSTACTION:  ACCEPT
+      FELIX_IPV6SUPPORT:                  false
+      FELIX_HEALTHENABLED:                true
+    Mounts:
+      /host/etc/cni/net.d from cni-net-dir (rw)
+      /lib/modules from lib-modules (ro)
+      /run/xtables.lock from xtables-lock (rw)
+      /sys/fs/bpf from bpffs (rw)
+      /var/lib/calico from var-lib-calico (rw)
+      /var/log/calico/cni from cni-log-dir (ro)
+      /var/run/calico from var-run-calico (rw)
+      /var/run/nodeagent from policysync (rw)
+  Volumes:
+   lib-modules:       
+    Type:          HostPath (bare host directory volume)
+    Path:          /lib/modules
+    HostPathType:
+   var-run-calico:
+    Type:          HostPath (bare host directory volume)
+    Path:          /var/run/calico
+    HostPathType:
+   var-lib-calico:
+    Type:          HostPath (bare host directory volume)
+    Path:          /var/lib/calico
+    HostPathType:
+   xtables-lock:
+    Type:          HostPath (bare host directory volume)
+    Path:          /run/xtables.lock
+    HostPathType:  FileOrCreate
+   sys-fs:
+    Type:          HostPath (bare host directory volume)
+    Path:          /sys/fs/
+    HostPathType:  DirectoryOrCreate
+   bpffs:
+    Type:          HostPath (bare host directory volume)
+    Path:          /sys/fs/bpf
+    HostPathType:  Directory
+   nodeproc:
+    Type:          HostPath (bare host directory volume)
+    Path:          /proc
+    HostPathType:
+   cni-bin-dir:
+    Type:          HostPath (bare host directory volume)
+    Path:          /opt/cni/bin
+    HostPathType:
+   cni-net-dir:                                                 [1] 
+    Type:          HostPath (bare host directory volume)
+    Path:          /etc/cni/net.d
+    HostPathType:
+   cni-log-dir:
+    Type:          HostPath (bare host directory volume)
+    Path:          /var/log/calico/cni
+    HostPathType:
+   host-local-net-dir:
+    Type:          HostPath (bare host directory volume)
+    Path:          /var/lib/cni/networks
+    HostPathType:
+   policysync:
+    Type:               HostPath (bare host directory volume)
+    Path:               /var/run/nodeagent
+    HostPathType:       DirectoryOrCreate
+  Priority Class Name:  system-node-critical
+  Node-Selectors:       kubernetes.io/os=linux
+  Tolerations:          :NoSchedule op=Exists
+                        :NoExecute op=Exists
+                        CriticalAddonsOnly op=Exists
+Events:
+  Type    Reason            Age   From                  Message
+  ----    ------            ----  ----                  -------
+  Normal  SuccessfulCreate  12m   daemonset-controller  Created pod: calico-node-54gt9
+  Normal  SuccessfulCreate  12m   daemonset-controller  Created pod: calico-node-8f2r8
+```
+> [1] Calico mounts a hostPath volume type that connects to `/etc/cni/net.d/` on the kubelet. The CNI binary for the Calico-node process accesses this hostPath to call the CNI API when an IP address is needed for a new Pod. This setup serves as the installation mechanism for the host's CNI provider. 
+
+</details>
+
+We can now examine the routes created by Calico.
 
 
 </details>
