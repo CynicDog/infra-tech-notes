@@ -1311,8 +1311,82 @@ metadata:
 
 </details>
 
-
 and checking the `mode` field.
+
+There are three types of kube-proxy mode: 
+
+1. `iptables`: Uses Linux iptables to route traffic to Pods via defined rules. Simple and effective but may struggle with scale.
+
+2. `IPVS` (IP Virtual Server): Utilizes the IPVS module for load balancing TCP/UDP traffic. Offers better performance and scalability with various load-balancing algorithms.
+
+3. `userspace` (deprecated): Runs a proxy in userspace to forward traffic to Pods. Simple but has performance issues; now deprecated.
+
+External load balancers or ingress/gateway routers are responsible for forwarding traffic into a Kubernetes cluster. The kube-proxy, on the other hand, manages the routing of traffic between services and Pods. It's worth noting that the term "proxy" can be misleading; typically, kube-proxy maintains static routing rules implemented by kernel technologies or other data plane methods, such as iptables rules.
+
+### What about NodePorts?
+
+Let's create a new Kubernetes service to demonstrate adding and modifying load-balancing rules. We'll set up a NodePort service pointing to a CoreDNS container in a Pod. Let's start the configuration by running the command and change the service type from `ClusterIP` to `NodePort` as below: 
+
+<details><summary><code>kubectl get svc kube-dns -o yaml -n kube-system</code><br></summary> 
+<br>
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    prometheus.io/port: "9153"
+    prometheus.io/scrape: "true"
+  creationTimestamp: "2024-10-11T05:56:44Z"
+  labels:
+    k8s-app: kube-dns
+    kubernetes.io/cluster-service: "true"
+    kubernetes.io/name: CoreDNS
+  name: kube-dns
+  namespace: kube-system
+  resourceVersion: "240"
+  uid: 9f99d4dc-8618-4522-bc55-6e7d57f2bf09
+spec:
+  clusterIP: 10.96.0.10
+  clusterIPs:
+  - 10.96.0.10
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+  - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+  - name: dns
+    port: 53
+    protocol: UDP
+    targetPort: 53
+  - name: dns-tcp
+    port: 53
+    protocol: TCP
+    targetPort: 53
+  - name: metrics
+    port: 9153
+    protocol: TCP
+    targetPort: 9153
+  selector:
+    k8s-app: kube-dns
+  sessionAffinity: None
+  type: NodePort       [1]
+status:
+  loadBalancer: {}
+```
+> Changed from `ClusterIP` to `NodePort`
+
+</details>
+
+Running the command below will see that random ports (`30247`, `32585`) assigned for the NodePort service, which now forwards traffic to CoreDNS.
+
+```bash
+root@kind-control-plane:/# kubectl get svc -A
+NAMESPACE     NAME         TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)                                    AGE
+default       kubernetes   ClusterIP   10.96.0.1    <none>        443/TCP                                    13d
+kube-system   kube-dns     NodePort    10.96.0.10   <none>        53:30247/UDP,53:32585/TCP,9153:31915/TCP   13d
+```
+
 
 </details>
 
