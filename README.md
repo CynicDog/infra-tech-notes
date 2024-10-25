@@ -1458,7 +1458,7 @@ kube-system          coredns-7db6d8ff4d-k6kjv                       0/1     Pend
 
 To download the Calico configuration file and create according resources, run: 
 ```bash
-root@calico-control-plane:/# curl -O https://calico-v3-25.netlify.app/archive/v3.25/manifests/Calico.yaml
+root@calico-control-plane:/# curl -O https://raw.githubusercontent.com/projectcalico/calico/refs/heads/release-v3.28/manifests/calico.yaml
 root@calico-control-plane:/# kubectl create -f Calico.yaml
 ```
 
@@ -1727,7 +1727,18 @@ Events:
 
 We can now examine the routes created by Calico.
 
+Let's first install `calicoctl`, a command-line tool for managing Calico networking.  
 
+```bash
+root@calico-control-plane:~# curl -L https://github.com/projectcalico/calico/releases/download/v3.28.2/calicoctl-linux-amd64 -o calicoctl
+root@calico-control-plane:~# mv calicoctl usr/local/bin/
+root@calico-control-plane:~# chmod +x usr/local/bin/calicoctl
+root@calico-control-plane:~# calicoctl version
+Client Version:    v3.28.2
+Git commit:        9a96ee39f
+Cluster Version:   v3.28.2
+Cluster Type:      k8s,bgp,kubeadm,kdd
+```
 
 
 </details>
