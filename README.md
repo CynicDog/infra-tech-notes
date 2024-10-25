@@ -1665,7 +1665,69 @@ Events:
 
 </details>
 
+<details><summary>We can verify Calico's Pod-to-Pod networking following the steps.</summary>
+
+- Deploy an nginx pod:
+  ```bash
+  root@calico-control-plane:/# kubectl run test-nginx --image=nginx --port=80
+  ```
+
+- Expose the nginx pod as a service:
+  ```bash
+  root@calico-control-plane:/# kubectl expose pod test-nginx --port=80 --target-port=80
+  ```
+
+- Get the service’s cluster IP:
+  ```bash
+  root@calico-control-plane:/# kubectl get svc test-nginx
+  NAME         TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)   AGE
+  test-nginx   ClusterIP   10.96.210.232   <none>        80/TCP    20m
+  ```
+
+- Run a test pod:
+  ```bash
+  root@calico-control-plane:/# kubectl run test-pod --image=busybox --restart=Never -- sleep 3600
+  ```
+
+- Exec into the test pod:
+  ```bash
+  root@calico-control-plane:/# kubectl exec -it test-pod -- sh
+  ```
+
+- Test connectivity:
+  ```bash
+  / # wget http://<CLUSTER-IP>:80
+  / # cat index.html
+  <!DOCTYPE html>
+  <html>
+  <head>
+  <title>Welcome to nginx!</title>
+  <style>
+  html { color-scheme: light dark; }
+  body { width: 35em; margin: 0 auto;
+  font-family: Tahoma, Verdana, Arial, sans-serif; }
+  </style>
+  </head>
+  <body>
+  <h1>Welcome to nginx!</h1>
+  <p>If you see this page, the nginx web server is successfully installed and
+  working. Further configuration is required.</p>
+  
+  <p>For online documentation and support please refer to
+  <a href="http://nginx.org/">nginx.org</a>.<br/>
+  Commercial support is available at
+  <a href="http://nginx.com/">nginx.com</a>.</p>
+  
+  <p><em>Thank you for using nginx.</em></p>
+  </body>
+  </html>
+  ```
+
+</details>
+
 We can now examine the routes created by Calico.
+
+
 
 
 </details>
