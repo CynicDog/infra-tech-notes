@@ -1436,6 +1436,7 @@ networking:
 nodes:
 - role: control-plane
 - role: worker
+- role: worker  
 ```
 
 Then, run the following command to create a cluster: 
@@ -1746,7 +1747,8 @@ IPv4 BGP status
 +--------------+-------------------+-------+----------+-------------+
 | PEER ADDRESS |     PEER TYPE     | STATE |  SINCE   |    INFO     |
 +--------------+-------------------+-------+----------+-------------+
-| 172.18.0.3   | node-to-node mesh | up    | 22:52:18 | Established |
+| 172.18.0.2   | node-to-node mesh | up    | 01:30:23 | Established |
+| 172.18.0.3   | node-to-node mesh | up    | 01:30:23 | Established |
 +--------------+-------------------+-------+----------+-------------+
 ```
 </details>
@@ -1774,7 +1776,92 @@ local-path-storage   local-path-provisioner-988d74bc-k8qs9      calico-worker   
 ```
 </details>
 
+Let's now inspect how IP addresses and interfaces are used for communication among Pods and services.
 
+```bash
+root@calico-worker:/# ip route
+default via 172.18.0.1 dev eth0
+172.18.0.0/16 dev eth0 proto kernel scope link src 172.18.0.2
+blackhole 192.168.9.128/26 proto bird                             [0] 
+192.168.9.129 dev cali5551bbd9c08 scope link                      [1]
+192.168.9.130 dev cali5d4b88a1313 scope link
+192.168.9.131 dev calia82da4400b7 scope link
+192.168.9.132 dev cali003a7fd37ed scope link
+192.168.71.0/26 via 172.18.0.4 dev tunl0 proto bird onlink
+192.168.88.0/26 via 172.18.0.3 dev tunl0 proto bird onlink
+```
+> [0] This route is a blackhole, meaning any traffic destined for the `192.168.9.128/26` subnet will be discarded, preventing routing to that network.
+>
+> [1] Routes for Pods using Calico interfaces, indicating that `192.168.9.129` is reachable directly via the `cali5551bbd9c08` interface.
+
+#### Pings from control plane node to a Pod in worker node 
+
+Let's validate the ping connection between the control plane node and the NGINX pod running on the Calico worker node. 
+
+First, label the worker node and create/assign a pod to the node: 
+```bash
+root@calico-control-plane:/# kubectl label nodes calico-worker calico-node=calico-worker
+root@calico-control-plane:/# kubectl apply -f nginx-in-worker-node.yml  
+```
+where the `nginx-in-worker-node.yml` reads as below: 
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+    imagePullPolicy: IfNotPresent
+  nodeSelector:
+    calico-node: calico-worker
+```
+
+Then you will see an IP address assigned to the pod: 
+```bash
+root@calico-control-plane:/# kubectl get pods -o wide
+NAME    READY   STATUS    RESTARTS   AGE   IP              NODE            NOMINATED NODE   READINESS GATES
+nginx   1/1     Running   0          16m   192.168.9.133   calico-worker   <none>           <none>
+```
+
+Let's ping to the pod via the IP address:
+```bash
+root@calico-control-plane:/# ping 192.168.9.133
+PING 192.168.9.133 (192.168.9.133) 56(84) bytes of data.
+64 bytes from 192.168.9.133: icmp_seq=1 ttl=63 time=1.44 ms
+64 bytes from 192.168.9.133: icmp_seq=2 ttl=63 time=0.108 ms
+64 bytes from 192.168.9.133: icmp_seq=3 ttl=63 time=0.107 ms
+...
+```
+
+Now, open a new terminal and connect to the worker node: 
+```bash
+PS C:\Users> docker exec -it calico-workder /bin/bash
+```
+
+Then find the calico interface corresponding to the nginx pod we created in the node: 
+```bash
+root@calico-worker:/# ip route get 192.168.9.133
+192.168.9.133 dev calic440f455693 src 192.168.9.128 uid 0   [1]
+```
+> [1] The route lookup shows that traffic to the nginx pod's IP `192.168.9.133` will use the interface `calic440f455693`, with a source IP of `192.168.9.128`.
+
+Now let's analyze network traffic for the pod: 
+```bash
+root@calico-worker:/# tcpdump -s 0 -i calic440f455693 -v | grep 192
+tcpdump: listening on calic440f455693, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+    192.168.71.0 > 192.168.9.133: ICMP echo request, id 1, seq 178, length 64       [1] 
+    192.168.9.133 > 192.168.71.0: ICMP echo reply, id 1, seq 178, length 64         [2] 
+    192.168.71.0 > 192.168.9.133: ICMP echo request, id 1, seq 179, length 64
+    192.168.9.133 > 192.168.71.0: ICMP echo reply, id 1, seq 179, length 64
+    192.168.71.0 > 192.168.9.133: ICMP echo request, id 1, seq 180, length 64
+    192.168.9.133 > 192.168.71.0: ICMP echo reply, id 1, seq 180, length 64
+... 
+```
+> [1] the control plane node (`192.168.71.0`) sends a ping request to the Nginx pod (`192.168.9.133`) running on the worker node.
+>
+> [2] the worker node's pod (`192.168.9.133`) responds back to the control plane node with an ICMP echo reply.
 
 </details>
 
