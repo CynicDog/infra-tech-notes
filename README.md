@@ -1727,7 +1727,7 @@ Events:
 
 We can now examine the routes created by Calico.
 
-Let's first install `calicoctl`, a command-line tool for managing Calico networking.  
+Let's first install and give execution permission to `calicoctl`, a command-line tool for managing Calico networking.  
 
 ```bash
 root@calico-control-plane:~# curl -L https://github.com/projectcalico/calico/releases/download/v3.28.2/calicoctl-linux-amd64 -o calicoctl
@@ -1739,6 +1739,45 @@ Git commit:        9a96ee39f
 Cluster Version:   v3.28.2
 Cluster Type:      k8s,bgp,kubeadm,kdd
 ```
+
+You can then perform inspections by running the commands below: 
+<details><summary><code>root@calico-control-plane:/# calicoctl node status</code><br></summary>
+<br>
+
+```bash
+Calico process is running.
+IPv4 BGP status
++--------------+-------------------+-------+----------+-------------+
+| PEER ADDRESS |     PEER TYPE     | STATE |  SINCE   |    INFO     |
++--------------+-------------------+-------+----------+-------------+
+| 172.18.0.3   | node-to-node mesh | up    | 22:52:18 | Established |
++--------------+-------------------+-------+----------+-------------+
+```
+</details>
+
+<details><summary><code>root@calico-control-plane:/# calicoctl get ippools</code><br></summary>
+<br>
+
+```bash
+NAME                  CIDR             SELECTOR
+default-ipv4-ippool   192.168.0.0/16   all()
+```
+</details>
+
+<details><summary><code>root@calico-control-plane:/# calicoctl get wep --all-namespaces</code><br></summary>
+<br>
+
+```bash
+NAMESPACE            WORKLOAD                                   NODE                   NETWORKS            INTERFACE
+default              test-nginx                                 calico-worker   192.169.213.10/32   calidc04c0cba51
+default              test-pod                                   calico-worker                       cali7fba7a35b74
+kube-system          calico-kube-controllers-65dcc554ff-fwxrm   calico-worker   192.169.213.7/32    cali06377f61327
+kube-system          coredns-7db6d8ff4d-7rv7w                   calico-worker   192.169.213.9/32    cali35bb5ef2e32
+kube-system          coredns-7db6d8ff4d-mb5vk                   calico-worker   192.169.213.8/32    calie2b4b3a7cc1
+local-path-storage   local-path-provisioner-988d74bc-k8qs9      calico-worker   192.169.213.11/32   cali03395987d47
+```
+</details>
+
 
 
 </details>
