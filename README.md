@@ -1520,7 +1520,7 @@ Pod Template:
   Service Account:  calico-node
   Init Containers:
    upgrade-ipam:
-    Image:      docker.io/calico/cni:v3.25.0
+    Image:      docker.io/calico/cni:v3.28.2
     Port:       <none>
     Host Port:  <none>
     Command:
@@ -1535,7 +1535,7 @@ Pod Template:
       /host/opt/cni/bin from cni-bin-dir (rw)
       /var/lib/cni/networks from host-local-net-dir (rw)
    install-cni:
-    Image:      docker.io/calico/cni:v3.25.0
+    Image:      docker.io/calico/cni:v3.28.2
     Port:       <none>
     Host Port:  <none>
     Command:
@@ -1552,7 +1552,7 @@ Pod Template:
       /host/etc/cni/net.d from cni-net-dir (rw)
       /host/opt/cni/bin from cni-bin-dir (rw)
    mount-bpffs:
-    Image:      docker.io/calico/node:v3.25.0
+    Image:      docker.io/calico/node:v3.28.2
     Port:       <none>
     Host Port:  <none>
     Command:
@@ -1566,7 +1566,7 @@ Pod Template:
       /var/run/calico from var-run-calico (rw)
   Containers:
    calico-node:
-    Image:      docker.io/calico/node:v3.25.0
+    Image:      docker.io/calico/node:v3.28.2
     Port:       <none>
     Host Port:  <none>
     Requests:
@@ -1602,18 +1602,18 @@ Pod Template:
       /var/run/calico from var-run-calico (rw)
       /var/run/nodeagent from policysync (rw)
   Volumes:
-   lib-modules:       
+   lib-modules:
     Type:          HostPath (bare host directory volume)
     Path:          /lib/modules
     HostPathType:
    var-run-calico:
     Type:          HostPath (bare host directory volume)
     Path:          /var/run/calico
-    HostPathType:
+    HostPathType:  DirectoryOrCreate
    var-lib-calico:
     Type:          HostPath (bare host directory volume)
     Path:          /var/lib/calico
-    HostPathType:
+    HostPathType:  DirectoryOrCreate
    xtables-lock:
     Type:          HostPath (bare host directory volume)
     Path:          /run/xtables.lock
@@ -1633,10 +1633,10 @@ Pod Template:
    cni-bin-dir:
     Type:          HostPath (bare host directory volume)
     Path:          /opt/cni/bin
-    HostPathType:
-   cni-net-dir:                                                 [1] 
+    HostPathType:  DirectoryOrCreate
+   cni-net-dir:
     Type:          HostPath (bare host directory volume)
-    Path:          /etc/cni/net.d
+    Path:          /etc/cni/net.d      [1]
     HostPathType:
    cni-log-dir:
     Type:          HostPath (bare host directory volume)
@@ -1655,11 +1655,7 @@ Pod Template:
   Tolerations:          :NoSchedule op=Exists
                         :NoExecute op=Exists
                         CriticalAddonsOnly op=Exists
-Events:
-  Type    Reason            Age   From                  Message
-  ----    ------            ----  ----                  -------
-  Normal  SuccessfulCreate  12m   daemonset-controller  Created pod: calico-node-54gt9
-  Normal  SuccessfulCreate  12m   daemonset-controller  Created pod: calico-node-8f2r8
+Events:                 <none>
 ```
 > [1] Calico mounts a hostPath volume type that connects to `/etc/cni/net.d/` on the kubelet. The CNI binary for the Calico-node process accesses this hostPath to call the CNI API when an IP address is needed for a new Pod. This setup serves as the installation mechanism for the host's CNI provider. 
 
@@ -1768,7 +1764,7 @@ default-ipv4-ippool   192.168.0.0/16   all()
 <br>
 
 ```bash
-NAMESPACE            WORKLOAD                                   NODE                   NETWORKS            INTERFACE
+NAMESPACE            WORKLOAD                                   NODE            NETWORKS            INTERFACE
 default              test-nginx                                 calico-worker   192.169.213.10/32   calidc04c0cba51
 default              test-pod                                   calico-worker                       cali7fba7a35b74
 kube-system          calico-kube-controllers-65dcc554ff-fwxrm   calico-worker   192.169.213.7/32    cali06377f61327
