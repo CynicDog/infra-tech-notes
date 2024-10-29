@@ -1460,7 +1460,7 @@ kube-system          coredns-7db6d8ff4d-k6kjv                       0/1     Pend
 To download the Calico configuration file and create according resources, run: 
 ```bash
 root@calico-control-plane:/# curl -O https://raw.githubusercontent.com/projectcalico/calico/refs/heads/release-v3.28/manifests/calico.yaml
-root@calico-control-plane:/# kubectl create -f Calico.yaml
+root@calico-control-plane:/# kubectl create -f calico.yaml
 ```
 
 You will then see the resources are correctly in place by running:
@@ -1834,6 +1834,7 @@ PING 192.168.9.133 (192.168.9.133) 56(84) bytes of data.
 64 bytes from 192.168.9.133: icmp_seq=3 ttl=63 time=0.107 ms
 ...
 ```
+> You might need to install `iputils-ping` to run the command by running: `apt-get install iputils-ping` 
 
 Now, open a new terminal and connect to the worker node: 
 ```bash
@@ -1862,6 +1863,156 @@ tcpdump: listening on calic440f455693, link-type EN10MB (Ethernet), snapshot len
 > [1] the control plane node (`192.168.71.0`) sends a ping request to the Nginx pod (`192.168.9.133`) running on the worker node.
 >
 > [2] the worker node's pod (`192.168.9.133`) responds back to the control plane node with an ICMP echo reply.
+>
+> You might need to install `tcpdump`. Run `apt-get install tcpdump -y` if needed.
+
+### Kubernetes networking with OVS and Antrea 
+
+To a casual user, Antrea and Calico might seem to perform the same function—routing traffic between containers across a multi-node cluster. However, the underlying mechanisms differ subtly.
+
+Antrea leverages OVS (Open vSwitch) for its CNI capabilities. Unlike Calico, which relies on BGP for direct node-to-node routing using IP addresses, Antrea doesn’t route traffic in the same way. It creates a local bridge on each Kubernetes node using OVS, which functions as a software-defined switch—similar to the physical ones you’d find at a computer store. In Antrea, OVS serves as the interface between Pods and the outside world.
+
+Let's start the inspections with writing `kind-Antrea-conf.yaml` configuration that reads as below: 
+
+```yaml
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+networking:
+  disableDefaultCNI: true
+  podSubnet: 192.168.0.0/16
+nodes:
+- role: control-plane
+- role: worker
+```
+
+Then let's create a kind cluster: 
+```bash
+PS C:\Users> kind create cluster --name=antrea --config=antrea.yml
+```
+
+Once the cluster is up, let's install the Antrea resources in our cluster: 
+```bash
+PS C:\Users> curl -O https://raw.githubusercontent.com/antrea-io/antrea/refs/heads/main/build/yamls/antrea.yml
+PS C:\Users> kubectl create -f antrea.yml 
+```
+
+You will see the Antrea agent pods and an Antrea controller are up and running with running the command below: 
+
+<details><summary><code>root@antrea-control-plane:/# kubectl get all -A</code><br></summary>
+<br>
+
+```bash
+NAMESPACE            NAME                                               READY   STATUS    RESTARTS   AGE
+kube-system          pod/antrea-agent-5krx6                             2/2     Running   0          2m7s
+kube-system          pod/antrea-agent-69cmd                             2/2     Running   0          2m7s
+kube-system          pod/antrea-agent-xsp72                             2/2     Running   0          2m7s
+kube-system          pod/antrea-controller-7dd65ff7b9-m6lbc             1/1     Running   0          2m7s
+kube-system          pod/coredns-6f6b679f8f-4q9mx                       1/1     Running   0          10m
+kube-system          pod/coredns-6f6b679f8f-xkp6h                       1/1     Running   0          10m
+kube-system          pod/etcd-antrea-control-plane                      1/1     Running   0          10m
+kube-system          pod/kube-apiserver-antrea-control-plane            1/1     Running   0          10m
+kube-system          pod/kube-controller-manager-antrea-control-plane   1/1     Running   0          10m
+kube-system          pod/kube-proxy-4wwwv                               1/1     Running   0          10m
+kube-system          pod/kube-proxy-929ld                               1/1     Running   0          10m
+kube-system          pod/kube-proxy-h72dh                               1/1     Running   0          10m
+kube-system          pod/kube-scheduler-antrea-control-plane            1/1     Running   0          10m
+local-path-storage   pod/local-path-provisioner-57c5987fd4-zdlm2        1/1     Running   0          10m
+
+NAMESPACE     NAME                 TYPE        CLUSTER-IP    EXTERNAL-IP   PORT(S)                  AGE
+default       service/kubernetes   ClusterIP   10.96.0.1     <none>        443/TCP                  11m
+kube-system   service/antrea       ClusterIP   10.96.49.15   <none>        443/TCP                  2m7s
+kube-system   service/kube-dns     ClusterIP   10.96.0.10    <none>        53/UDP,53/TCP,9153/TCP   10m
+
+NAMESPACE     NAME                          DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR            AGE
+kube-system   daemonset.apps/antrea-agent   3         3         3       3            3           kubernetes.io/os=linux   2m7s
+kube-system   daemonset.apps/kube-proxy     3         3         3       3            3           kubernetes.io/os=linux   10m
+
+NAMESPACE            NAME                                     READY   UP-TO-DATE   AVAILABLE   AGE
+kube-system          deployment.apps/antrea-controller        1/1     1            1           2m7s
+kube-system          deployment.apps/coredns                  2/2     2            2           10m
+local-path-storage   deployment.apps/local-path-provisioner   1/1     1            1           10m
+
+NAMESPACE            NAME                                                DESIRED   CURRENT   READY   AGE
+kube-system          replicaset.apps/antrea-controller-7dd65ff7b9        1         1         1       2m7s
+kube-system          replicaset.apps/coredns-6f6b679f8f                  2         2         2       10m
+local-path-storage   replicaset.apps/local-path-provisioner-57c5987fd4   1         1         1       10m
+
+```
+  
+</details>
+
+When we run `ip route`, we don’t see a new route for each Pod. This is because OVS uses a bridge, with all traffic routed through the local OVS instance. Running the command below reveals Antrea’s subnet logic:
+
+```bash
+root@antrea-control-plane:/# ip route 
+default via 172.18.0.1 dev eth0 
+172.18.0.0/16 dev eth0 proto kernel scope link src 172.18.0.5 
+192.168.0.0/24 dev antrea-gw0 scope link src 192.168.0.1 
+192.168.1.0/24 via 192.168.1.1 dev antrea-gw0 onlink 
+```
+
+To confirm, we can run `ip a`, which shows the IP addresses the system recognizes:
+
+```bash
+root@antrea-control-plane:/# ip a
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host 
+       valid_lft forever preferred_lft forever
+2: tunl0@NONE: <NOARP> mtu 1480 qdisc noop state DOWN group default qlen 1000
+    link/ipip 0.0.0.0 brd 0.0.0.0
+3: gre0@NONE: <NOARP> mtu 1476 qdisc noop state DOWN group default qlen 1000
+    link/gre 0.0.0.0 brd 0.0.0.0
+4: gretap0@NONE: <BROADCAST,MULTICAST> mtu 1462 qdisc noop state DOWN group default qlen 1000
+    link/ether 00:00:00:00:00:00 brd ff:ff:ff:ff:ff:ff
+5: erspan0@NONE: <BROADCAST,MULTICAST> mtu 1450 qdisc noop state DOWN group default qlen 1000
+    link/ether 00:00:00:00:00:00 brd ff:ff:ff:ff:ff:ff
+6: ip_vti0@NONE: <NOARP> mtu 1480 qdisc noop state DOWN group default qlen 1000
+    link/ipip 0.0.0.0 brd 0.0.0.0
+7: ip6_vti0@NONE: <NOARP> mtu 1428 qdisc noop state DOWN group default qlen 1000
+    link/tunnel6 :: brd :: permaddr ae76:14d9:9da6::
+8: sit0@NONE: <NOARP> mtu 1480 qdisc noop state DOWN group default qlen 1000
+    link/sit 0.0.0.0 brd 0.0.0.0
+9: ip6tnl0@NONE: <NOARP> mtu 1452 qdisc noop state DOWN group default qlen 1000
+    link/tunnel6 :: brd :: permaddr 2e1d:488c:b83b::
+10: ip6gre0@NONE: <NOARP> mtu 1448 qdisc noop state DOWN group default qlen 1000
+    link/gre6 :: brd :: permaddr 7e6f:3885:dba3::
+11: ovs-system: <BROADCAST,MULTICAST> mtu 1500 qdisc noop state DOWN group default qlen 1000                                           [1]
+    link/ether d2:85:aa:ff:f8:72 brd ff:ff:ff:ff:ff:ff
+12: genev_sys_6081: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 65000 qdisc noqueue master ovs-system state UNKNOWN group default qlen 1000  [2]
+    link/ether ca:08:c0:94:80:5c brd ff:ff:ff:ff:ff:ff
+13: antrea-gw0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 65000 qdisc noqueue state UNKNOWN group default qlen 1000                        [3] 
+    link/ether 66:c7:c1:9d:47:a6 brd ff:ff:ff:ff:ff:ff
+    inet 192.168.0.1/24 brd 192.168.0.255 scope global antrea-gw0
+       valid_lft forever preferred_lft forever
+14: antrea-egress0: <BROADCAST,NOARP> mtu 1500 qdisc noop state DOWN group default 
+    link/ether 12:ab:14:e3:c6:d2 brd ff:ff:ff:ff:ff:ff
+
+```
+> [1] `ovs-system`: An OVS interface
+> 
+> [2] `genev_sys_6081`: Antrea’s tunneling protocol interface
+>
+> [3] `antrea-gw0`: The Antrea interface that routes traffic to Pods
+
+
+Unlike Calico, Antrea uses a gateway IP on the Pod subnet tied to the cluster's `podCIDR` for routing.
+
+Antrea uses an OVS (Open vSwitch) to create a virtual switch on each Kubernetes node, connecting all Pods on that node to each other and the outside network. Instead of setting up direct routes for each Pod, all traffic flows through this local switch, which handles the connections and routing within the cluster. This design simplifies Pod networking by using a central gateway, rather than setting up multiple routes for each Pod.
+
+Unlike Antrea, which uses a virtual OVS switch on each node to manage Pod connections, Calico sets up direct routes between nodes using BGP (Border Gateway Protocol). Calico assigns each Pod an IP address, routing traffic directly from node to node. Antrea, on the other hand, routes all traffic through a local switch, simplifying connections by using a central gateway on each node.
+
+In the bridged networking model (Antrea), there are a few key differences in device handling:
+
+- No blackhole route is needed, as OVS manages this internally.
+- The kernel only manages routes for the Antrea gateway (`Antrea-gw0`).
+- All Pod traffic is directed to `Antrea-gw0`, with no global routing to other devices, unlike the BGP routing used by Calico.
+
+Keep in mind that both Calico and Antrea create distinct subnets for nodes' Pod network. Both Calico and Antrea assign each node a unique subnet for its Pods, drawing individual IPs from that subnet for each Pod. 
+
+TODO: control plane pings to nginx pod in a worker node, inspect tcpdump as we did for calico cluster. 
 
 </details>
 
@@ -1903,6 +2054,4 @@ tcpdump: listening on calic440f455693, link-type EN10MB (Ethernet), snapshot len
 
 <details>
 <summary><h3>CH15. Installing applications</h3></summary>
-</details>
-
 </details>
