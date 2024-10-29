@@ -1423,6 +1423,8 @@ When a Pod is created, the CNI provider assigns it an IP address, allowing the P
 
 For our part, we will install the Calico provider and complete the implementation of CNI in our Kubernetes cluster.
 
+### Kubernetes Networking with BGP and Calico 
+
 #### Create a deedicated cluster
 
 The first is to create a `kind-Calico-conf.yaml` that looks as below: 
@@ -1866,7 +1868,7 @@ tcpdump: listening on calic440f455693, link-type EN10MB (Ethernet), snapshot len
 >
 > You might need to install `tcpdump`. Run `apt-get install tcpdump -y` if needed.
 
-### Kubernetes networking with OVS and Antrea 
+### Kubernetes Networking with OVS and Antrea 
 
 To a casual user, Antrea and Calico might seem to perform the same function—routing traffic between containers across a multi-node cluster. However, the underlying mechanisms differ subtly.
 
