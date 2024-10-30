@@ -1,3 +1,5 @@
+# Infra Tech Notes 
+
 A collection of notes on infrastructure essentials like Linux, Kubernetes, containerization, and networking. 
 
 <details>
