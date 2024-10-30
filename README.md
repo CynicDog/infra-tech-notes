@@ -1,5 +1,7 @@
+A collection of notes on infrastructure essentials like Linux, Kubernetes, containerization, and networking. 
+
 <details>
-<summary><h1>Kubernetes for Developers</h1></summary>
+<summary><h2>Kubernetes for Developers</h2></summary>
 <details>
 <summary><h3>CH3. Deploying to Kubernetes</h3></summary>
 
@@ -21,7 +23,7 @@ A **Deployment** is a specification for the desired state of the system, which K
 </details>
 
 <details>
-<summary><h1>Core Kubernetes</h1></summary>
+<summary><h2>Core Kubernetes</h2></summary>
 
 <details>
 <summary><h3>CH1. Why Kubernetes exists</h3></summary>
