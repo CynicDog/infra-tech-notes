@@ -3,6 +3,59 @@
 A collection of notes on infrastructure essentials like Linux, Kubernetes, containerization, and networking. 
 
 <details>
+<summary><h2>Linux in Action</h2></summary>
+
+<details>
+<summary><h3>CH1. Welcome to Linux</h3></summary>
+
+### What makes Linux different from other operating systems 
+Linux is free, making it easier to install without worrying about licenses or DRM, ideal for testing various hardware and server setups.
+
+Built on UNIX-like technology, Linux offers stability, security, and reliable package management for thousands of free apps. As open source, it’s customizable, leading to a vast range of specialized distributions (distros) tailored for different needs.
+
+Linux stands out from other operating systems due to its cost-effectiveness, stability, and security. Its open-source nature and robust package management foster a diverse ecosystem of customizable distributions, making it a versatile choice for various applications and user needs.
+
+### The Linux File System 
+Since it's commonly believed that <ins>everything in Linux operates through plain text files</ins>, it makes sense to begin by familiarizing yourself with the Linux file system.
+
+To ensure reliable data retrieval, you need an index that consistently directs you to your desired resources. A file system uses this index to create an organized structure of directories and files within a <ins>partition</ins>.
+
+All files in a disk partition are organized in directories under the root directory, represented by the `/` (forward slash). This directory structure follows the UNIX Filesystem Hierarchy Standard (FHS).
+
+Here’s a list of top-level directories in the Linux file system along with brief explanations:
+
+- `/etc`: Contains configuration files for the system and installed applications.
+- `/var`: Stores variable data files, such as logs, databases, and spool files.
+- `/home`: Contains user home directories, where personal files and settings are stored.
+- `/sbin`: Holds system binaries, essential for system administration and maintenance tasks, typically used by the root user.
+- `/bin`: Contains essential user binaries (executable programs) required for basic system operation, available to all users.
+- `/lib`: Stores shared libraries needed by binaries in `/bin` and `/sbin` for execution.
+- `/usr`: Contains user-related programs, libraries, and documentation, often divided into subdirectories like `/usr/bin` (user binaries) and `/usr/lib` (libraries for user applications).
+
+### What is Bash? 
+
+Bash is one of the most popular UNIX shells. A <ins>**shell** is a user interface that interprets commands</ins>, either through a command-line interface (CLI) or a graphical user interface (GUI). It acts as a software layer that executes formatted commands using the system's kernel and hardware resources.
+
+A kernel is the core part of an operating system that manages hardware resources and enables communication between software and hardware, handling processes, memory, and devices.
+
+```mermaid
+flowchart TD
+    A(User Inputs)
+    B(Shell - interprets commands)
+    C(Operating System Software - processes commands using kernel)
+    D(Kernel)
+    E(Hardware)
+
+    A --> B --> C --> D --> E
+```
+
+
+</details>
+
+</details>
+
+
+<details>
 <summary><h2>Kubernetes for Developers</h2></summary>
 <details>
 <summary><h3>CH3. Deploying to Kubernetes</h3></summary>
@@ -2022,42 +2075,3 @@ TODO: control plane pings to nginx pod in a worker node, inspect tcpdump as we d
 
 </details>
 
-<details>
-<summary><h3>CH6. Troubleshooting large-scale network errors</h3></summary>
-</details>
-
-<details>
-<summary><h3>CH7. Pod storage and the CSI</h3></summary>
-</details>
-
-<details>
-<summary><h3>CH8. Storage implementation and modelling</h3></summary>
-</details>
-
-<details>
-<summary><h3>CH9. Running Pods: How the kubelet works</h3></summary>
-</details>
-
-<details>
-<summary><h3>CH10. DNS in Kubernetes</h3></summary>
-</details>
-
-<details>
-<summary><h3>CH11. The core of the controlplane</h3></summary>
-</details>
-
-<details>
-<summary><h3>CH12. etcd and controlplane</h3></summary>
-</details>
-
-<details>
-<summary><h3>CH13. Container and Pod Security</h3></summary>
-</details>
-
-<details>
-<summary><h3>CH14. Nodes and Kubernetes Security</h3></summary>
-</details>
-
-<details>
-<summary><h3>CH15. Installing applications</h3></summary>
-</details>
