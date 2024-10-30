@@ -76,6 +76,27 @@ Running `journalctl` without arguments will produce a large amount of data, so y
 
 </details>
 
+<details>
+<summary><h3>CH2. Linux virtualization: Building a Linux working environment</h3></summary>
+
+### What is Virtualization? 
+
+Virtualization is the creation of virtual versions of physical resources, allowing multiple virtual instances to run on a single physical machine, which improves resource utilization and management.
+
+> Virtual Machines vs. Containers
+> 
+> Applications have been packaged into individual virtual machines (VMs), <ins>providing isolated operating environments</ins> for dependency management and resource allocation. However, this approach incurs high overhead due to the need to maintain separate operating systems and packages for each application.
+>
+> Containers offer a more efficient solution by packaging just the application and its dependencies in an isolated environment. Unlike VMs, <ins>containers don't require a separate operating system</ins>, significantly reducing overhead while retaining many of the benefits of virtualization. This makes containers a more practical modern solution.
+
+<ins>**Successful virtualization**</ins> creates an isolated space on a physical computer where <ins>**a guest OS can be installed and convinced that it is the sole occupant of its own machine**</ins>. These guest operating systems can share network connections, allowing administrators to log in remotely.
+
+<ins>**Successful containerization**</ins> creates lightweight, <ins>**isolated environments for applications to run with their dependencies**</ins>, making each container think it has its own OS while sharing the host's kernel. This setup allows multiple containers to coexist efficiently, enabling quick deployment, management, and scaling of applications.
+
+Hypervisors are software that manage host system hardware, allocating necessary resources to guest operating systems. They run guest machines as system processes with virtualized access to hardware resources. Examples include Xen, KVM, VMware ESXi, and Microsoft Hyper-V, which provide the foundation for many cloud services, such as those offered by AWS.
+
+</details>
+
 </details>
 
 
