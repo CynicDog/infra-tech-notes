@@ -5,11 +5,6 @@ A collection of notes on infrastructure essentials like Linux, Kubernetes, conta
 <details>
 <summary><h2>Linux in Action</h2></summary>
 
-### Index
-
-1. [CH1. Welcome to Linux](#ch1-welcome-to-linux)
-2. [CH2. Linux virtualization: Building a Linux working environment](#ch2-linux-virtualization-building-a-linux-working-environment)
-
 <details>
 <summary><h3>CH1. Welcome to Linux</h3></summary>
 
@@ -98,7 +93,154 @@ Virtualization is the creation of virtual versions of physical resources, allowi
 
 <ins>**Successful containerization**</ins> creates lightweight, <ins>**isolated environments for applications to run with their dependencies**</ins>, making each container think it has its own OS while sharing the host's kernel. This setup allows multiple containers to coexist efficiently, enabling quick deployment, management, and scaling of applications.
 
-Hypervisors are software that manage host system hardware, allocating necessary resources to guest operating systems. They run guest machines as system processes with virtualized access to hardware resources. Examples include Xen, KVM, VMware ESXi, and Microsoft Hyper-V, which provide the foundation for many cloud services, such as those offered by AWS.
+**Hypervisors** are software that manage host system hardware, <ins>allocating necessary resources to guest operating systems</ins>. They run guest machines as system processes with virtualized access to hardware resources. Examples include Xen, KVM, VMware ESXi, and Microsoft Hyper-V, which provide the foundation for many cloud services, such as those offered by AWS.
+
+</details>
+
+<details>
+<summary><h3>CH3. Remote connectivity: Safely accessing networked machines</h3></summary>
+
+### 
+
+To safeguard data privacy, security software employs an encryption key—a small file with a random character sequence. Secure communications involve quickly encrypting data before transmission and decrypting it upon receipt. The SSH protocol facilitates this process seamlessly, providing secure remote logins for UNIX-like systems since the 1990s. OpenSSH is widely used, and Microsoft now offers it natively on Windows.
+
+The `dpkg` command-line tool manages and queries software packages within the Advanced Package Tool (APT) system.
+
+Run the following commands to inspect the `opeenssh-client` and `opeenssh-server` packages. 
+
+<details><summary><code>$ dpkg -s openssh-client</code><br></summary>
+<br>
+    
+```
+Package: openssh-client
+Status: install ok installed
+Priority: standard
+Section: net
+Installed-Size: 3536
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Architecture: amd64
+Multi-Arch: foreign
+Source: openssh
+Version: 1:9.6p1-3ubuntu13.5
+Replaces: openssh-sk-helper, ssh, ssh-krb5
+Provides: ssh-client
+Depends: adduser, passwd, libc6 (>= 2.38), libedit2 (>= 2.11-20080614-0), libfido2-1 (>= 1.8.0), libgssapi-krb5-2 (>= 1.17), libselinux1 (>= 3.1~), libssl3t64 (>= 3.0.13), zlib1g (>= 1:1.1.4)
+Recommends: xauth
+Suggests: keychain, libpam-ssh, monkeysphere, ssh-askpass
+Breaks: openssh-sk-helper
+Conflicts: sftp
+Conffiles:
+ /etc/ssh/ssh_config d11fe67b3cd9180e1c0e888c5e5b93f6
+Description: secure shell (SSH) client, for secure access to remote machines
+ This is the portable version of OpenSSH, a free implementation of
+ the Secure Shell protocol as specified by the IETF secsh working
+ group.
+ .
+ Ssh (Secure Shell) is a program for logging into a remote machine
+ and for executing commands on a remote machine.
+ It provides secure encrypted communications between two untrusted
+ hosts over an insecure network. X11 connections and arbitrary TCP/IP
+ ports can also be forwarded over the secure channel.
+ It can be used to provide applications with a secure communication
+ channel.
+ .
+ This package provides the ssh, scp and sftp clients, the ssh-agent
+ and ssh-add programs to make public key authentication more convenient,
+ and the ssh-keygen, ssh-keyscan, ssh-copy-id and ssh-argv0 utilities.
+ .
+ In some countries it may be illegal to use any encryption at all
+ without a special permit.
+ .
+ ssh replaces the insecure rsh, rcp and rlogin programs, which are
+ obsolete for most purposes.
+Homepage: https://www.openssh.com/
+Original-Maintainer: Debian OpenSSH Maintainers <debian-ssh@lists.debian.org>
+```
+</details>
+
+<details><summary><code>$ dpkg -s openssh-server</code><br></summary>
+<br>
+    
+```
+Package: openssh-server
+Status: install ok installed
+Priority: optional
+Section: net
+Installed-Size: 2097
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Architecture: amd64
+Multi-Arch: foreign
+Source: openssh
+Version: 1:9.6p1-3ubuntu13.5
+Replaces: openssh-client (<< 1:7.9p1-8), ssh, ssh-krb5
+Provides: ssh-server
+Depends: adduser, libpam-modules, libpam-runtime, lsb-base, openssh-client (= 1:9.6p1-3ubuntu13.5), openssh-sftp-server, procps, ucf, debconf (>= 0.5) | debconf-2.0, libaudit1 (>= 1:2.2.1), libc6 (>= 2.38), libcom-err2 (>= 1.43.9), libcrypt1 (>= 1:4.1.0), libgssapi-krb5-2 (>= 1.17), libkrb5-3 (>= 1.13~alpha1+dfsg), libpam0g (>= 0.99.7.1), libselinux1 (>= 3.1~), libssl3t64 (>= 3.0.13), libwrap0 (>= 7.6-4~), zlib1g (>= 1:1.1.4)
+Pre-Depends: init-system-helpers (>= 1.54~)
+Recommends: default-logind | logind | libpam-systemd, ncurses-term, xauth, ssh-import-id
+Suggests: molly-guard, monkeysphere, ssh-askpass, ufw
+Conflicts: sftp, ssh-socks, ssh2
+Conffiles:
+ /etc/default/ssh 500e3cf069fe9a7b9936108eb9d9c035
+ /etc/init.d/ssh 3649a6fe8c18ad1d5245fd91737de507
+ /etc/pam.d/sshd 8b4c7a12b031424b2a9946881da59812
+ /etc/ssh/moduli 366395e79244c54223455e5f83dafba3
+ /etc/ufw/applications.d/openssh-server 486b78d54b93cc9fdc950c1d52ff479e
+Description: secure shell (SSH) server, for secure access from remote machines
+ This is the portable version of OpenSSH, a free implementation of
+ the Secure Shell protocol as specified by the IETF secsh working
+ group.
+ .
+ Ssh (Secure Shell) is a program for logging into a remote machine
+ and for executing commands on a remote machine.
+ It provides secure encrypted communications between two untrusted
+ hosts over an insecure network. X11 connections and arbitrary TCP/IP
+ ports can also be forwarded over the secure channel.
+ It can be used to provide applications with a secure communication
+ channel.
+ .
+ This package provides the sshd server.
+ .
+ In some countries it may be illegal to use any encryption at all
+ without a special permit.
+ .
+ sshd replaces the insecure rshd program, which is obsolete for most
+ purposes.
+Homepage: https://www.openssh.com/
+Original-Maintainer: Debian OpenSSH Maintainers <debian-ssh@lists.debian.org>
+```
+</details>
+
+Note that the server version also includes all the tools you’ll find in the client package.
+
+You can check if SSH is running on your machine by using the command `systemctl status`.
+
+<details><summary><code>$ systemctl status ssh</code><br></summary>
+<br> 
+    
+```
+● ssh.service - OpenBSD Secure Shell server
+     Loaded: loaded (/usr/lib/systemd/system/ssh.service; disabled; preset: enabled)
+     Active: active (running) since Wed 2024-10-30 05:45:34 UTC; 2h 10min ago
+TriggeredBy: ● ssh.socket
+       Docs: man:sshd(8)
+             man:sshd_config(5)
+    Process: 1145 ExecStartPre=/usr/sbin/sshd -t (code=exited, status=0/SUCCESS)
+   Main PID: 1147 (sshd)
+      Tasks: 1 (limit: 2276)
+     Memory: 3.1M (peak: 4.1M)
+        CPU: 91ms
+     CGroup: /system.slice/ssh.service
+             └─1147 "sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups"
+
+Oct 30 05:45:34 Ubuntu-server systemd[1]: Starting ssh.service - OpenBSD Secure Shell server...
+Oct 30 05:45:34 Ubuntu-server sshd[1147]: Server listening on :: port 22.
+Oct 30 05:45:34 Ubuntu-server systemd[1]: Started ssh.service - OpenBSD Secure Shell server.
+Oct 30 05:45:39 Ubuntu-server sshd[1148]: Accepted password for cynicdog from 10.0.2.2 port 64573 ssh2
+Oct 30 05:45:39 Ubuntu-server sshd[1148]: pam_unix(sshd:session): session opened for user cynicdog(uid=1000) by cynicdog(uid=0)
+
+```
+</details>
+
 
 </details>
 
