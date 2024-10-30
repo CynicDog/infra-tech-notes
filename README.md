@@ -2,14 +2,13 @@
 
 A collection of notes on infrastructure essentials like Linux, Kubernetes, containerization, and networking. 
 
-### Index
-
-1. Linux in Action
-    1. [CH1. Welcome to Linux](#ch1-welcome-to-linux)
-    2. [CH2. Linux virtualization: Building a Linux working environment](#ch2-linux-virtualization-building-a-linux-working-environment)
-
 <details>
 <summary><h2>Linux in Action</h2></summary>
+
+### Index
+
+1. [CH1. Welcome to Linux](#ch1-welcome-to-linux)
+2. [CH2. Linux virtualization: Building a Linux working environment](#ch2-linux-virtualization-building-a-linux-working-environment)
 
 <details>
 <summary><h3>CH1. Welcome to Linux</h3></summary>
