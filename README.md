@@ -243,7 +243,7 @@ Oct 30 05:45:39 Ubuntu-server sshd[1148]: pam_unix(sshd:session): session opened
 
 ### Logging into a remote server with SSH 
 
-Let's simulate the network with two hosts in Docker following the steps below. We will create a Docker network (`ubuntwos`) and there we will run two ubuntu containers, `ubuntu-1` as a server and `ubuntu-2` as a client that connects to the server.   
+Let's simulate a network with two hosts in Docker following the steps below. We will create a Docker network (`ubuntwos`) and there we will run two ubuntu containers, `ubuntu-1` as a server and `ubuntu-2` as a client that connects to the server.   
 
 1. Create a Docker network.
    ```bash
@@ -362,7 +362,7 @@ Let's simulate the network with two hosts in Docker following the steps below. W
 
 7. Access to the server host from the client.
 
-   ```bash
+   ```text
    root@8bbdca37e251:/# ssh root@172.19.0.2
    root@172.19.0.2's password: ****
    Welcome to Ubuntu 24.04.1 LTS (GNU/Linux 5.15.153.1-microsoft-standard-WSL2 x86_64)
@@ -378,7 +378,50 @@ Let's simulate the network with two hosts in Docker following the steps below. W
    Last login: Thu Oct 31 05:10:35 2024 from 172.19.0.3
    root@8885b89799a2:~#
    ```
-      
+
+### Password-free SSH access (SSH key-based authentication)
+
+Instead of using password authentication for SSH, you can create a key pair and copy the public key to the remote host where you want to log in. The implementation steps are as follows.
+
+1. Configure ssh daemon on the server host.
+   ```bash
+   root@8885b89799a2:/# vim /etc/ssh/sshd_config 
+   ```
+   > Set the `PasswordAuthentication` as `no` to disable the basic authentication. 
+   
+2. Create a key pair in the client host.
+   ```bash
+   root@8bbdca37e251:/# ssh-keygen
+   Generating public/private ed25519 key pair.
+   Enter file in which to save the key (/root/.ssh/id_ed25519):
+   Enter passphrase (empty for no passphrase):
+   Enter same passphrase again:
+   Your identification has been saved in /root/.ssh/id_ed25519
+   Your public key has been saved in /root/.ssh/id_ed25519.pub
+   ... 
+   ```
+
+3. Copy the public key from the client to the remote server host.
+   ```bash
+   root@8bbdca37e251:/# ssh root@172.19.0.2 mkdir -p .ssh
+   root@172.19.0.2 password: **** 
+
+   root@172.19.0.2's password:
+   id_ed25519.pub                                    100%   99   213.4KB/s   00:00
+   ```
+
+4. Connect to the remote server by using the ssh key-based authentication
+   ```bash
+   root@8bbdca37e251:/# ssh root@172.19.0.2
+   Welcome to Ubuntu 24.04.1 LTS (GNU/Linux 5.15.153.1-microsoft-standard-WSL2 x86_64)
+   ... 
+   root@8885b89799a2:~#
+   ```
+
+### Linux process management 
+
+More notes are coming up.. 👨🏻‍💻 
+
 </details>
 
 </details>
