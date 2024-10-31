@@ -335,7 +335,7 @@ Let's simulate a network with two hosts in Docker following the steps below. We 
    ```bash
    root@8885b89799a2:/# vim /etc/ssh/sshd_config
    ```
-   And set the `PermitRootLogin` to `yes` and uncomment the line. Save the configuration and exit (`:wq`). 
+   > Set the `PermitRootLogin` to `yes` and uncomment the line. Save the configuration and exit (`:wq`). 
 
    Then we set the password as below:
    ```bash
@@ -420,7 +420,76 @@ Instead of using password authentication for SSH, you can create a key pair and 
 
 ### Linux process management 
 
-More notes are coming up.. 👨🏻‍💻 
+<ins>**Software**</ins> consists of <ins>programming code that instructs computer hardware</ins> on behalf of users. A <ins>**process**</ins> is <ins>an instance of a running software program</ins>. An <ins>**operating system**</ins> <ins>organizes and manages these processes</ins> to optimize the use of hardware resources.
+
+When you run the `ps` command, you'll typically see two results: the `bash` process <ins>representing the Bash command interpreter for your current shell session</ins>, and <ins>the most recent command executed</ins>, which is `ps` itself. If there are background processes or jobs running in your session, those will also appear in the output.
+
+Let's start a <ins>**priviliged container**</ins> for inspecting the linux process management. A privileged container is needed to grant extended permissions for operations that require direct access to the host's devices or system resources, such as running systemd or managing hardware.
+
+```bash
+PS C:\Users> docker run -it --privileged ubuntu /bin/bash
+```
+
+Adding the -e argument to ps retrieves all processes from your current shell and all parent shells up to init.
+
+```bash
+root@51c80d3eb605:/# ps -e
+    PID TTY          TIME CMD
+      1 pts/0    00:00:00 bash
+      9 pts/1    00:00:00 bash
+   4041 pts/2    00:00:00 bash
+   4241 pts/2    00:00:00 ps
+```
+
+If you want to visualize the parent and children processes, you can run `pstree` command with `-p` argument, to display the PIDs of each process included. 
+
+<details><summary><code>cynicdog@Ubuntu-server:~$ pstree -p</code><br></summary>
+<br>
+
+```bash
+systemd(1)─┬─ModemManager(763)─┬─{ModemManager}(788)
+           │                   ├─{ModemManager}(792)
+           │                   └─{ModemManager}(795)
+           ├─cron(828)
+           ├─dbus-daemon(635)
+           ├─login(875)───bash(1072)
+           ├─multipathd(3150)─┬─{multipathd}(3174)
+           │                  ├─{multipathd}(3176)
+           │                  ├─{multipathd}(3177)
+           │                  ├─{multipathd}(3178)
+           │                  ├─{multipathd}(3179)
+           │                  └─{multipathd}(3180)
+           ├─ovs-vswitchd(8901)
+           ├─ovsdb-server(8850)
+           ├─polkitd(647)─┬─{polkitd}(742)
+           │              ├─{polkitd}(743)
+           │              └─{polkitd}(744)
+           ├─rsyslogd(707)─┬─{rsyslogd}(759)
+           │               ├─{rsyslogd}(760)
+           │               └─{rsyslogd}(762)
+           ├─sshd(1147)───sshd(1767)───sshd(1849)───bash(1850)───pstree(13952)
+           ├─systemd(1062)───(sd-pam)(1063)
+           ├─systemd-journal(289)
+           ├─systemd-logind(666)
+           ├─systemd-network(404)
+           ├─systemd-resolve(421)
+           ├─systemd-timesyn(427)───{systemd-timesyn}(479)
+           ├─systemd-udevd(353)
+           ├─udisksd(680)─┬─{udisksd}(717)
+           │              ├─{udisksd}(718)
+           │              ├─{udisksd}(721)
+           │              ├─{udisksd}(761)
+           │              └─{udisksd}(804)
+           ├─unattended-upgr(837)───{unattended-upgr}(870)
+           └─upowerd(1489)─┬─{upowerd}(1491)
+                           ├─{upowerd}(1492)
+                           └─{upowerd}(1493)
+
+```    
+</details>
+
+
+
 
 </details>
 
