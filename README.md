@@ -100,7 +100,7 @@ Virtualization is the creation of virtual versions of physical resources, allowi
 <details>
 <summary><h3>CH3. Remote connectivity: Safely accessing networked machines</h3></summary>
 
-### 
+### Getting Started with OpenSSH
 
 To safeguard data privacy, security software employs an encryption key—a small file with a random character sequence. Secure communications involve quickly encrypting data before transmission and decrypting it upon receipt. The SSH protocol facilitates this process seamlessly, providing secure remote logins for UNIX-like systems since the 1990s. OpenSSH is widely used, and Microsoft now offers it natively on Windows.
 
@@ -241,7 +241,144 @@ Oct 30 05:45:39 Ubuntu-server sshd[1148]: pam_unix(sshd:session): session opened
 ```
 </details>
 
+### Logging into a remote server with SSH 
 
+Let's simulate the network with two hosts in Docker following the steps below. We will create a Docker network (`ubuntwos`) and there we will run two ubuntu containers, `ubuntu-1` as a server and `ubuntu-2` as a client that connects to the server.   
+
+1. Create a Docker network.
+   ```bash
+   docker network create ubuntwos 
+   ```
+
+2. Start and access two ubuntu containers in interactive terminals.
+   ```bash
+   docker run -d --name ubuntu-1 --network ubuntwos ubuntu
+   docker run -d --name ubuntu-2 --network ubuntwos ubuntu
+   docker exec -it ubuntu-1 /bin/bash
+   docker exec -it ubuntu-2 /bin/bash
+   ```
+
+3. Install common tools for both of the containers.
+   ```bash
+   apt-get update && apt-get install -y net-tools iproute2 iputils-ping tcpdump vim 
+   ```
+
+   You can check the ip address assigned to the container's default network interface(`eth0`) as below.
+
+   <details><summary>For <code>ubuntu-1</code>, run <code>root@8885b89799a2:/# ip addr</code><br></summary>
+   <br>
+       
+   ```bash
+      1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+        link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+        inet 127.0.0.1/8 scope host lo
+          valid_lft forever preferred_lft forever
+        inet6 ::1/128 scope host
+          valid_lft forever preferred_lft forever
+      2: tunl0@NONE: <NOARP> mtu 1480 qdisc noop state DOWN group default qlen 1000
+        link/ipip 0.0.0.0 brd 0.0.0.0
+      21: eth0@if22: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default
+        link/ether 02:42:ac:13:00:02 brd ff:ff:ff:ff:ff:ff link-netnsid 0
+        inet 172.19.0.2/16 brd 172.19.255.255 scope global eth0    [1] 
+          valid_lft forever preferred_lft forever
+   ```
+   > The ip address assigned to the default network interface for `ubuntu-1` container (the server host) is `172.19.0.2`.
+   </details>
+
+   <details><summary>For <code>ubuntu-2</code>, run <code>root@8bbdca37e251:/# ip addr</code><br></summary>
+   <br>
+       
+   ```bash
+      1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+        link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+        inet 127.0.0.1/8 scope host lo
+          valid_lft forever preferred_lft forever
+        inet6 ::1/128 scope host
+          valid_lft forever preferred_lft forever
+      2: tunl0@NONE: <NOARP> mtu 1480 qdisc noop state DOWN group default qlen 1000
+        link/ipip 0.0.0.0 brd 0.0.0.0
+      23: eth0@if24: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default
+        link/ether 02:42:ac:13:00:03 brd ff:ff:ff:ff:ff:ff link-netnsid 0
+        inet 172.19.0.3/16 brd 172.19.255.255 scope global eth0    [1] 
+          valid_lft forever preferred_lft forever
+   ```
+   > The ip address assigned to the default network interface for `ubuntu-2` container (the client host) is `172.19.0.3`.   
+   </details>
+
+   We can also inspect networkings between two containers as below.
+
+   ```bash
+   root@8885b89799a2:/# ping 172.19.0.3
+   PING 172.19.0.3 (172.19.0.3) 56(84) bytes of data.
+   64 bytes from 172.19.0.3: icmp_seq=1 ttl=64 time=0.555 ms
+   ```
+   > The server container (`172.19.0.2`) pings to the client container (`172.19.0.3`).
+
+   ```bash
+   root@8bbdca37e251:/# tcpdump -i eth0 icmp
+   tcpdump: verbose output suppressed, use -v[v]... for full protocol decode
+   listening on eth0, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+   14:59:46.419641 IP ubuntu-1.ubuntwos > 8bbdca37e251: ICMP echo request, id 3, seq 55, length 64
+   14:59:46.419655 IP 8bbdca37e251 > ubuntu-1.ubuntwos: ICMP echo reply, id 3, seq 55, length 64
+   14:59:47.459640 IP ubuntu-1.ubuntwos > 8bbdca37e251: ICMP echo request, id 3, seq 56, length 64
+   ```
+   > The client container (`172.19.0.3`) processes incoming ping requests and sends back the corresponding ICMP echo replies.
+   
+5. Configure the server.
+
+   First, let's install the `openssh-server` on the `ubuntu-1`.
+   ```bash
+   root@8885b89799a2:/# apt-get install openssh-server -y 
+   ```
+
+   Then we need to configure ssh daemon (`sshd_config`) file.
+   ```bash
+   root@8885b89799a2:/# vim /etc/ssh/sshd_config
+   ```
+   And set the `PermitRootLogin` to `yes` and uncomment the line. Save the configuration and exit (`:wq`). 
+
+   Then we set the password as below:
+   ```bash
+   root@8885b89799a2:/# passwd
+   New password: ****
+   Retype new password: **** 
+   passwd: password updated successfully
+   ```
+
+   Now let's start the ssh daemon.
+   ```bash
+   root@8885b89799a2:/# service ssh start
+     * Starting OpenBSD Secure Shell server sshd   
+   root@8885b89799a2:/# service ssh status
+     * sshd is running
+   ```
+
+6. Configure the client.
+
+   Install the `openssh-client` on the `ubuntu-2`.
+   ```bash
+   root@8bbdca37e251:/# apt-get install openssh-client -y 
+   ```
+
+7. Access to the server host from the client.
+
+   ```bash
+   root@8bbdca37e251:/# ssh root@172.19.0.2
+   root@172.19.0.2's password: ****
+   Welcome to Ubuntu 24.04.1 LTS (GNU/Linux 5.15.153.1-microsoft-standard-WSL2 x86_64)
+
+    * Documentation:  https://help.ubuntu.com
+    * Management:     https://landscape.canonical.com
+    * Support:        https://ubuntu.com/pro
+
+   This system has been minimized by removing packages and content that are
+   not required on a system that users do not log into.
+
+   To restore this content, you can run the 'unminimize' command.
+   Last login: Thu Oct 31 05:10:35 2024 from 172.19.0.3
+   root@8885b89799a2:~#
+   ```
+      
 </details>
 
 </details>
