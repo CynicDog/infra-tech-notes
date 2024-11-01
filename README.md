@@ -401,7 +401,7 @@ Instead of using password authentication for SSH, you can create a key pair and 
    root@172.19.0.2 password: **** 
 
    root@1ab415eaeebe:~# scp /root/.ssh/id_ed25519.pub root@172.19.0.2:.ssh/authorized_keys
-   root@172.19.0.2's password:
+   root@172.19.0.2 password: ****
    id_ed25519.pub                                    100%   99   213.4KB/s   00:00
    ```
 
@@ -483,10 +483,161 @@ systemd(1)─┬─ModemManager(763)─┬─{ModemManager}(788)
 
 ```    
 </details>
-``
 
 `systemd` manages process lifecycles, including creation and termination, using the `systemctl` command. It also oversees various system services, such as `journald` (logging), `networkd` (network management), and `udevd` (device management). The "d" in systemd stands for daemon, indicating its role as a background process.
 
+</details>
+
+<details>
+<summary><h3>CH4. Archive management: Backing up or copying entire file systems</h3></summary>
+
+In Linux, **tar** is commonly used for archiving multiple files into one (`.tar` file), often combined with compression (`.tar.gz`). **dd** creates disk image archives by copying data at the block level, ideal for backing up entire partitions or drives. **rsync** is used for incremental archiving, efficiently syncing files and directories between locations, often for backups or mirroring.
+
+**Compression** reduces file size, commonly using `gzip` or `bzip2`, to save space. Archiving and compression are often used together, like `tar.gz`.
+
+An **image** is a file that represents an exact, byte-for-byte copy of data from a storage device, like a disk, partition, or filesystem. It includes all files, system metadata, and boot information, making it useful for backups, system recovery, or deployment. Images can be created with tools like `dd` or `Clonezilla` for disk cloning and `ISO` files for operating system installations.
+
+A **partition** is a defined section of a storage device, such as a hard drive or SSD, that is treated as a separate logical unit. Each partition can hold a file system, allowing the operating system to manage and organize data independently. Partitions help optimize storage, separate operating systems, and improve data management and security.
+
+### What to archive 
+
+Let's start with the `df` command, which shows all currently mounted partitions on a Linux system, along with their disk usage and file system locations.
+
+```bash
+root@1ab415eaeebe:/# df
+Filesystem      1K-blocks     Used Available Use% Mounted on
+overlay        1055762868 19854556 982204840   2% /
+tmpfs               65536        0     65536   0% /dev
+tmpfs             4029616        0   4029616   0% /sys/fs/cgroup
+shm                 65536        0     65536   0% /dev/shm
+/dev/sdc       1055762868 19854556 982204840   2% /etc/hosts
+tmpfs             4029616        0   4029616   0% /proc/acpi
+tmpfs             4029616        0   4029616   0% /sys/firmware
+```
+
+It's essential to differentiate between real and pseudo file systems. If the file system is designated as `tmpfs` and the Used column shows 0 bytes, it indicates that no space is currently in use.
+
+Be sure to follow best practices for backups. Your backups should be:
+
+1. **Reliable**: Use storage media that are likely to maintain integrity for the duration of their intended use.
+2. **Tested**: Regularly test the restoration of backups in simulated production environments.
+3. **Rotated**: Keep several historical backups that are older than the most recent one to safeguard against potential failures.
+4. **Distributed**: Store some backups in a physically remote location to protect against data loss from disasters like fire.
+5. **Secure**: Avoid exposing your data to insecure networks or storage sites during the backup process.
+6. **Compliant**: Adhere to all relevant regulatory and industry standards at all times.
+7. **Up-to-Date**: Ensure your backups reflect the current live version, avoiding outdated archives.
+8. **Scripted**: Automate backup processes to eliminate reliance on human memory for ongoing tasks.
+
+### Archiving files and file systems using `tar`
+
+#### Simple archive and compression examples
+
+- Let's create some files to archive by runnning: 
+  ```bash
+  root@1ab415eaeebe:~# touch file1 file2 file3
+  ```
+- Now, let's archive these files into a tarball:
+  ```bash
+  root@1ab415eaeebe:~# tar cvf files.tar *
+  file1
+  file2
+  file3
+  ```
+- You can also use globbing to archive specific file types:
+  ```bash
+  root@1ab415eaeebe:~# touch hello.mp4
+  root@1ab415eaeebe:~# tar cvf audio.tar *.mp4
+  hello.mp4
+  ```
+- Now, let's create a compressed tarball of the MP4 files:
+  ```
+  root@1ab415eaeebe:~# tar czvf audio.tar.gz *.mp4
+  hello.mp4
+  ```
+- Since `tar` is aware of its Linux environment, you can use it to select files and directories outside your current working directory. For example, to add all `.mp4` files from the `/home/myuser/Videos/` directory:
+  ```bash
+  root@1ab415eaeebe:~# tar czvf archivename.tar.gz /home/myuser/Videos/*.mp4
+  ```
+- You can split a zipped file into parts using `split` with the `-b` argument:
+  ```bash
+  root@1ab415eaeebe:~# split -b 1G archivename.tar.gz "archivename.tar.gz.part"
+  ```
+- To combine these parts back into the original file, use:
+  ```bash
+  root@1ab415eaeebe:~# cat archivename.tar.gz.part* > archivename.tar.gz
+  ```
+
+#### Streaming file system archives
+
+An archive is a file that can be copied or moved using standard Bash commands, allowing us to stream it to a remote server. 
+
+One advantage of using the `cat` operation to generate archives is that it eliminates the need for an intermediate step, avoiding temporary storage of the archive on the local machine.
+
+```bash
+root@d41115ff5e58:~# tar czvf - audio.mp4 | ssh root@172.19.0.2 "cat > /home/ubuntu/audio.tar.gz"
+```
+
+#### Aggregating files with find
+
+We can aggregate files with the help of `find` search command and `tar` with `-r` option to append the found results as below: 
+```bash
+root@d41115ff5e58:/home/ubuntu# touch word-1.txt
+root@d41115ff5e58:/home/ubuntu# echo "Hello," > word-1.txt
+root@d41115ff5e58:/home/ubuntu# touch word-2.txt
+root@d41115ff5e58:/home/ubuntu# echo " World!" > word-2.txt
+root@d41115ff5e58:/home/ubuntu# find . -name "*.txt" -exec tar -rvf archive.tar {} +
+./word-1.txt
+./word-2.txt
+root@d41115ff5e58:/home/ubuntu# cat archive.tar
+./word-1.txt0000644000000000000000000000000714711067750011570 0ustar  rootrootHello,
+./word-2.txt0000644000000000000000000000001014711067764011570 0ustar  rootroot World!
+```
+
+#### Preserving permissions and ownership...and extracting archives
+
+Let's first with checking the permission and ownership information by running: 
+```bash
+root@d41115ff5e58:/# ls -l /usr/lib/openssh/
+total 856
+-rwxr-xr-x 1 root root   1190 Apr  4  2024 agent-launch
+-rwsr-xr-x 1 root root 342632 Aug  9 11:33 ssh-keysign
+-rwxr-xr-x 1 root root 256432 Aug  9 11:33 ssh-pkcs11-helper
+-rwxr-xr-x 1 root root 268720 Aug  9 11:33 ssh-sk-helper
+```
+
+**Permissions** dictate what actions users can perform on a file or directory, including reading, writing, and executing.
+
+To modify an object's permissions with `chmod` command, you need to input the total score for each user category: owner, group, and others.
+```bash
+root@d41115ff5e58:/# chmod 771 /usr/lib/openssh/ssh-sk-helper
+root@d41115ff5e58:/# ls -l /usr/lib/openssh/
+total 856
+-rwxr-xr-x 1 root root   1190 Apr  4  2024 agent-launch
+-rwsr-xr-x 1 root root 342632 Aug  9 11:33 ssh-keysign
+-rwxr-xr-x 1 root root 256432 Aug  9 11:33 ssh-pkcs11-helper
+-rwxrwx--x 1 root root 268720 Aug  9 11:33 ssh-sk-helper         [1]
+```
+> [1] The write permission on `ssh-sk-helper` is newly given to group. 
+
+**Ownership** in a filesystem determines which user and group have control over a file or directory, influencing permissions for reading, writing, and executing.
+
+```bash
+root@d41115ff5e58:/home/ubuntu# touch newfile
+root@d41115ff5e58:/home/ubuntu# ls -l
+total 0
+-rw-r--r-- 1 root root 0 Nov  1 15:39 newfile
+```
+
+You can change a file's ownership using `chown` as follows:  
+```bash
+root@d41115ff5e58:/home/ubuntu# chown cynicdog:cynicdog newfile
+```
+> Ensure the user you want to assign as the owner exists beforehand. If it doesn’t, create it using `adduser USERNAME`.
+
+To extract the archive, use the `tar` command with the `x` argument instead of `c`:  
+```bash
+root@d41115ff5e58:/home/ubuntu# tar xvf archive.tar
+```
 
 </details>
 
