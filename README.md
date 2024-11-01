@@ -424,12 +424,6 @@ Instead of using password authentication for SSH, you can create a key pair and 
 
 When you run the `ps` command, you'll typically see two results: the `bash` process <ins>representing the Bash command interpreter for your current shell session</ins>, and <ins>the most recent command executed</ins>, which is `ps` itself. If there are background processes or jobs running in your session, those will also appear in the output.
 
-Let's start a <ins>**priviliged container**</ins> for inspecting the linux process management. A privileged container is needed to grant extended permissions for operations that require direct access to the host's devices or system resources, such as running systemd or managing hardware.
-
-```bash
-PS C:\Users> docker run -it --privileged ubuntu /bin/bash
-```
-
 Adding the -e argument to ps retrieves all processes from your current shell and all parent shells up to init.
 
 ```bash
@@ -487,8 +481,9 @@ systemd(1)─┬─ModemManager(763)─┬─{ModemManager}(788)
 
 ```    
 </details>
+``
 
-
+`systemd` manages process lifecycles, including creation and termination, using the `systemctl` command. It also oversees various system services, such as `journald` (logging), `networkd` (network management), and `udevd` (device management). The "d" in systemd stands for daemon, indicating its role as a background process.
 
 
 </details>
