@@ -252,8 +252,8 @@ Let's simulate a network with two hosts in Docker following the steps below. We 
 
 2. Start and access two ubuntu containers in interactive terminals.
    ```bash
-   docker run -d --name ubuntu-1 --network ubuntwos ubuntu
-   docker run -d --name ubuntu-2 --network ubuntwos ubuntu
+   docker run -dt --name ubuntu-1 --network ubuntwos ubuntu
+   docker run -dt --name ubuntu-2 --network ubuntwos ubuntu
    docker exec -it ubuntu-1 /bin/bash
    docker exec -it ubuntu-2 /bin/bash
    ```
@@ -263,7 +263,7 @@ Let's simulate a network with two hosts in Docker following the steps below. We 
    apt-get update && apt-get install -y net-tools iproute2 iputils-ping tcpdump vim 
    ```
 
-   You can check the ip address assigned to the container's default network interface(`eth0`) as below.
+   You can check the ip address assigned to the container's <ins>**default network interface**</ins>(`eth0`) as below.
 
    <details><summary>For <code>ubuntu-1</code>, run <code>root@8885b89799a2:/# ip addr</code><br></summary>
    <br>
@@ -382,14 +382,8 @@ Let's simulate a network with two hosts in Docker following the steps below. We 
 ### Password-free SSH access (SSH key-based authentication)
 
 Instead of using password authentication for SSH, you can create a key pair and copy the public key to the remote host where you want to log in. The implementation steps are as follows.
-
-1. Configure ssh daemon on the server host.
-   ```bash
-   root@8885b89799a2:/# vim /etc/ssh/sshd_config 
-   ```
-   > Set the `PasswordAuthentication` as `no` to disable the basic authentication. 
    
-2. Create a key pair in the client host.
+1. Create a key pair in the client host.
    ```bash
    root@8bbdca37e251:/# ssh-keygen
    Generating public/private ed25519 key pair.
@@ -401,14 +395,21 @@ Instead of using password authentication for SSH, you can create a key pair and 
    ... 
    ```
 
-3. Copy the public key from the client to the remote server host.
+2. Copy the public key from the client to the remote server host.
    ```bash
    root@8bbdca37e251:/# ssh root@172.19.0.2 mkdir -p .ssh
    root@172.19.0.2 password: **** 
 
+   root@1ab415eaeebe:~# scp /root/.ssh/id_ed25519.pub root@172.19.0.2:.ssh/authorized_keys
    root@172.19.0.2's password:
    id_ed25519.pub                                    100%   99   213.4KB/s   00:00
    ```
+
+3. Configure ssh daemon on the server host.
+   ```bash
+   root@8885b89799a2:/# vim /etc/ssh/sshd_config 
+   ```
+   > Set the `PasswordAuthentication` as `no` to disable the basic authentication. 
 
 4. Connect to the remote server by using the ssh key-based authentication
    ```bash
@@ -417,6 +418,7 @@ Instead of using password authentication for SSH, you can create a key pair and 
    ... 
    root@8885b89799a2:~#
    ```
+
 
 ### Linux process management 
 
