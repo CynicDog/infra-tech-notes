@@ -639,10 +639,47 @@ To extract the archive, use the `tar` command with the `x` argument instead of `
 root@d41115ff5e58:/home/ubuntu# tar xvf archive.tar
 ```
 
+### Archiving partitions with dd
+
+Previously, you used `tar` to copy files between systems, needing a host OS as a base. In contrast, `dd` creates perfect byte-for-byte images of any digital content.
+
+You can create a file filled with zeros (or any other data) using the `dd` command. For example, to create a 1MB file:
+```
+root@d41115ff5e58:/home/ubuntu# dd if=/dev/zero of=testfile bs=1M count=1
+1+0 records in
+1+0 records out
+1048576 bytes (1.0 MB, 1.0 MiB) copied, 0.00149206 s, 703 MB/s
+```
+> The `if=` parameter specifies the source drive, while the `of=` parameter indicates the file or location where you want to save the data.
+
+You can check the content of the copied result:
+```bash
+root@d41115ff5e58:/home/ubuntu# od -x testfile
+0000000 0000 0000 0000 0000 0000 0000 0000 0000
+*
+4000000
+```
+
+You can create a `.img` file using a file within your container.
+```bash
+root@d41115ff5e58:/home/ubuntu# dd if=/dev/zero of=partition.img bs=1M count=100
+100+0 records in
+100+0 records out
+104857600 bytes (105 MB, 100 MiB) copied, 0.18416 s, 569 MB/s
+```
+> The `bs` parameter sets the number of bytes to copy at one time.
+
+Restoring is straightforward: you simply swap the values of `if` and `of`. 
+
+By using the /dev/urandom file as the source, you can overwrite a disk with random data.
+```bash
+root@d41115ff5e58:/home/ubuntu# dd if=/dev/urandom of=/dev/sdXYZ bs=1M status=progress
+```
+> ⚠️ This command will completely overwrite the specified disk, erasing all existing data on it. Be very careful to specify the correct device.
+ 
 </details>
 
 </details>
-
 
 <details>
 <summary><h2>Kubernetes for Developers</h2></summary>
