@@ -768,6 +768,8 @@ Defines `APACHE_LOG_DIR` for the log location and opens a new configuration file
 ```
 Specifies Apache’s document root, directory permissions, and log file locations.
 
+In Apache, a `VirtualHost` allows hosting multiple websites on a single server by directing requests based on domain name, IP address, or port. It’s commonly used to serve multiple domains from one IP using name-based hosting. Each `VirtualHost` block specifies settings like the document root and logging for an individual site.
+
 #### Disable default site and enable the new site 
 ```bash
 root@c3141d39ae83:~# a2dissite 000-default.conf
