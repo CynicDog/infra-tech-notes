@@ -2797,7 +2797,7 @@ PING 192.168.9.133 (192.168.9.133) 56(84) bytes of data.
 
 Now, open a new terminal and connect to the worker node: 
 ```bash
-PS C:\Users> docker exec -it calico-workder /bin/bash
+PS C:\Users> docker exec -it calico-worker /bin/bash
 ```
 
 Then find the calico interface corresponding to the nginx pod we created in the node: 
