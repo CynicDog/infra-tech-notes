@@ -786,6 +786,10 @@ Reloads and restarts Apache to apply the virtual host configuration changes.
 
 </details>
 
+<details>
+<summary><h3>CH9. Securing your web server</h3></summary>
+</details>
+
 </details>
 
 <details>
