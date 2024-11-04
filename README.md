@@ -842,7 +842,7 @@ Copies the build output to `/var/www/html` so Apache can serve it, and sets perm
 vim /etc/nginx/sites-available/default
 ```
 
-<details><summary>where the configuration file reads: </summary><br>
+<details><summary>where the configuration file <code>default</code> reads: </summary>
 <br> 
 
 ```conf
