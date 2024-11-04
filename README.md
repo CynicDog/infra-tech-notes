@@ -784,6 +784,26 @@ service apache2 restart
 ```
 Reloads and restarts Apache to apply the virtual host configuration changes.
 
+#### Fetch from the client host. 
+```bash
+root@b32690965a6e:/# curl http://172.19.0.2:80/
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vite + React</title>
+    <script type="module" crossorigin src="/assets/index-Bw3cTkF-.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-n_ryQ3BS.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
+```
+> You might need to install `curl` first by running `apt install curl`. Note that the port of the web app is mapped to 80.  
+
 </details>
 
 <details>
