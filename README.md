@@ -252,8 +252,8 @@ Let's simulate a network with two hosts in Docker following the steps below. We 
 
 2. Start and access two ubuntu containers in interactive terminals.
    ```bash
-   docker run -dt --name ubuntu-1 --network ubuntwos ubuntu
-   docker run -dt --name ubuntu-2 --network ubuntwos ubuntu
+   docker run -dt -p 8080:80 --name ubuntu-1 --network ubuntwos ubuntu
+   docker run -dt -p 8081:80 --name ubuntu-2 --network ubuntwos ubuntu
    docker exec -it ubuntu-1 /bin/bash
    docker exec -it ubuntu-2 /bin/bash
    ```
@@ -707,8 +707,80 @@ total size is 0  speedup is 0.00
 </details>
 
 <details>
-<summary><h3>CH6. Emergency tools: Building a system recovery device </h3></summary>
+<summary><h3>CH7. Web servers: building a React Web App with Apache Web Server</h3></summary>
 
+### Create a vite-react web app and deploy on Apache 
+
+#### Install necessary packages
+```bash
+root@c3141d39ae83:~# apt install -y nodejs npm apache2 
+```
+Installs Node.js, npm (Node Package Manager), and the Apache2 web server.
+
+#### Start the Apache web server
+```bash
+root@c3141d39ae83:~# service apache2 start
+```
+Starts the Apache server so it can serve files.
+
+#### Create a new Vite-React application 
+```bash
+root@c3141d39ae83:~# npx create-vite@latest my-react-app --template react
+root@c3141d39ae83:~# cd my-react-app/
+```
+Uses `npx` to create a new Vite app with a React template and then navigates into the project directory.
+
+#### Install dependencies and build the application 
+```bash
+root@c3141d39ae83:/my-react-app# npm install 
+root@c3141d39ae83:/my-react-app# npm run build 
+```
+Installs project dependencies and builds the production-ready static files.
+
+#### Copy the build files to Apache’s serving directory and set permissions
+```bash
+root@c3141d39ae83:/my-react-app# cp -r dist/* /var/www/html
+root@c3141d39ae83:/my-react-app# chmod -R 755 /var/www/html/
+```
+Copies the build output to `/var/www/html` so Apache can serve it, and sets permissions to allow access.
+
+#### Set up Apache Virtual Host
+```bash
+export APACHE_LOG_DIR="/var/log/apache2"
+vim /etc/apache2/sites-available/my-react-app.conf
+```
+Defines `APACHE_LOG_DIR` for the log location and opens a new configuration file for the virtual host.
+
+#### Apache Virtual Host configuration file (`my-react-app.conf`)
+```xml
+<VirtualHost *:80>
+    ServerAdmin webmaster@localhost
+    DocumentRoot /var/www/html
+    <Directory /var/www/html>
+        Options Indexes FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    ErrorLog ${APACHE_LOG_DIR}/error.log
+    CustomLog ${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>
+```
+Specifies Apache’s document root, directory permissions, and log file locations.
+
+#### Disable default site and enable the new site 
+```bash
+root@c3141d39ae83:~# a2dissite 000-default.conf
+root@c3141d39ae83:~# a2ensite my-react-app.conf
+```
+Disables the default Apache site and enables the new virtual host configuration.
+
+#### Restart the Apache server to apply changes   
+```bash 
+service apache2 reload
+service apache2 restart
+```
+Reloads and restarts Apache to apply the virtual host configuration changes.
 
 </details>
 
