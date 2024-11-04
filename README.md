@@ -639,7 +639,7 @@ To extract the archive, use the `tar` command with the `x` argument instead of `
 root@d41115ff5e58:/home/ubuntu# tar xvf archive.tar
 ```
 
-### Archiving partitions with dd
+### Archiving partitions with `dd`
 
 Previously, you used `tar` to copy files between systems, needing a host OS as a base. In contrast, `dd` creates perfect byte-for-byte images of any digital content.
 
@@ -676,7 +676,40 @@ By using the /dev/urandom file as the source, you can overwrite a disk with rand
 root@d41115ff5e58:/home/ubuntu# dd if=/dev/urandom of=/dev/sdXYZ bs=1M status=progress
 ```
 > ⚠️ This command will completely overwrite the specified disk, erasing all existing data on it. Be very careful to specify the correct device.
- 
+
+### Synchronizing archives with `rsync`
+
+`rsync` is a fast, versatile command-line tool for synchronizing files and directories between two locations. It efficiently transfers only the differences between source and destination, minimizing data transfer and making it ideal for backups and remote file syncing.
+
+Let's first install the tool both on the server and client hosts. 
+```bash
+root@323e5033944b:/# apt-get install rsync -y 
+root@56ad7b47a68a:/# apt-get install rsync -y 
+```
+
+Then Navigate to the desired directory on the client host and create sample files for transfer. 
+```bash
+root@56ad7b47a68a:/home/ubuntu/sub_directory# touch file1 file2 file3
+```
+
+Now create the destination directory on the remote host and synchronize files to it
+```bash
+root@56ad7b47a68a:/home/ubuntu/sub_directory# ssh root@172.19.0.2 "mkdir sub_directory"
+root@56ad7b47a68a:/home/ubuntu/sub_directory# rsync -av * root@172.19.0.2:sub_directory
+sending incremental file list
+file1
+file2
+file3
+
+sent 202 bytes  received 73 bytes  550.00 bytes/sec
+total size is 0  speedup is 0.00
+```
+</details>
+
+<details>
+<summary><h3>CH6. Emergency tools: Building a system recovery device </h3></summary>
+
+
 </details>
 
 </details>
