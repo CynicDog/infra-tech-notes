@@ -709,7 +709,7 @@ total size is 0  speedup is 0.00
 <details>
 <summary><h3>CH7. Web servers: building a React Web App with Apache Web Server</h3></summary>
 
-### Create a vite-react web app and deploy on Apache 
+### Create a vite-react web app and Serve with Apache 
 
 #### Install necessary packages
 ```bash
@@ -803,6 +803,51 @@ root@b32690965a6e:/# curl http://172.19.0.2:80/
 </html>
 ```
 > You might need to install `curl` first by running `apt install curl`. Note that the port of the web app is mapped to 80.  
+
+### Create a vite-react web app and Serve with nginx  
+
+#### Turn off the Apache server if running. 
+```bash
+root@c3141d39ae83:/my-react-app# service apache2 stop 
+```
+
+#### Install `nginx` 
+```bash
+root@c3141d39ae83:/my-react-app# apt install -y nginx
+```
+
+#### Create a new Vite-React application 
+```bash
+root@c3141d39ae83:~# npx create-vite@latest my-react-app --template react
+root@c3141d39ae83:~# cd my-react-app/
+```
+Uses `npx` to create a new Vite app with a React template and then navigates into the project directory.
+
+#### Install dependencies and build the application 
+```bash
+root@c3141d39ae83:/my-react-app# npm install 
+root@c3141d39ae83:/my-react-app# npm run build 
+```
+Installs project dependencies and builds the production-ready static files.
+
+#### Copy the build files to Apache’s serving directory and set permissions
+```bash
+root@c3141d39ae83:/my-react-app# cp -r dist/* /var/www/html
+root@c3141d39ae83:/my-react-app# chmod -R 755 /var/www/html/
+```
+Copies the build output to `/var/www/html` so Apache can serve it, and sets permissions to allow access.
+
+#### Configure nginx if needed 
+```bash
+root@c3141d39ae83:/my-react-app# cp -r dist/* /var/www/html/
+```
+
+#### Start nginx 
+```bash
+root@c3141d39ae83:/my-react-app# service nginx start 
+```
+
+With the help of container's port-forwading, you can now navigate to the default page in your browser. 
 
 </details>
 
