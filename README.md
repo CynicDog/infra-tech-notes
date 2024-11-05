@@ -952,6 +952,8 @@ With the help of container's port-forwading, you can now navigate to the default
 <details>
 <summary><h3>CH9. Securing your web server</h3></summary>
 
+To enhance security for the web server, we need to migrate the Nginx/React web app from the Docker container to VirtualBox, as the container limits our ability to configure firewalld or UFW networking settings.
+
 ### Deploy a Vite-React App with Nginx on an Ubuntu Server in VirtualBox
 
 The build process for deploying the application in VirtualBox is the same as for creating a React app with Nginx in a Docker container (Refer to [this guide](#create-a-vite-react-web-app-and-serve-with-nginx-on-docker-container) in the chapter 7).
@@ -962,7 +964,93 @@ However, since we're now working inside VirtualBox, one network configuration is
 
 Navigate to the network settings of the Ubuntu Server instance. By default, the network is set to NAT. Click on **Port Forwarding** and add a new entry named `nginx`, with the host port set to `8080` and the guest port set to `80`.
 
-Now you can see the web app up and running in your host machine's browser.
+Now you can see the web app up and running in your host machine's browser with the url of `http://localhost:8080/`.
+
+### Controlling network access
+
+The web server needs to accept incoming web traffic globally using either HTTP or HTTPS. Additionally, SSH traffic should be permitted only for authorized developers and admins, while all other service requests should be automatically denied.
+
+Linux machines can configure firewall rules at the kernel level using a program called `iptables`. Creating `iptables` rules is relatively straightforward, and the syntax can be learned easily. However, to simplify the process, many Linux distributions offer higher-level tools, such as Uncomplicated Firewall (UFW) for Ubuntu, to abstract the configuration.
+
+Firewall functionality is also provided by hardware appliances from companies like Juniper and Cisco, which run on proprietary operating systems with distinct syntax and design.
+
+### Working with UncomplicatedFirewall (`ufw`) in Ubuntu Server 
+
+Let's first install/update the `ufw`. 
+```bash
+root@Ubuntu-server:~$ apt install ufw
+```
+
+Since UFW starts with all ports closed, enabling it may block new SSH sessions. Existing sessions should remain unaffected, but it's advisable to add a rule to allow SSH before enabling UFW:
+```bash
+root@Ubuntu-server:~# ufw allow ssh
+Rules updated
+Rules updated (v6)
+```
+
+Next, enable UFW with the following command:
+```bash
+root@Ubuntu-server:~# ufw enable
+Command may disrupt existing ssh connections. Proceed with operation (y|n)? y
+Firewall is active and enabled on system startup
+```
+
+You will notice that you can no longer access the React app with Nginx at `http://localhost:8080/` after enabling UFW.
+
+Let's fix that by allowing traffic on the guest port `80`, and we’ll also allow port `443` for HTTPS now: 
+```bash
+root@Ubuntu-server:~# ufw allow 80
+Rule added
+Rule added (v6)
+root@Ubuntu-server:~# ufw allow 443
+Rule added
+Rule added (v6)
+```
+
+You can see the status of `ufw` rules as below:  
+```bash
+root@Ubuntu-server:~# ufw status
+Status: active
+
+To                         Action      From
+--                         ------      ----
+22/tcp                     ALLOW       Anywhere
+80                         ALLOW       Anywhere
+443                        ALLOW       Anywhere
+22/tcp (v6)                ALLOW       Anywhere (v6)
+80 (v6)                    ALLOW       Anywhere (v6)
+443 (v6)                   ALLOW       Anywhere (v6)
+```
+
+You can finetune access to ports by specifying source IP address. Let's first disable the `ufw` and delete the existing rule for port `80`.  
+```bash
+root@Ubuntu-server:~# ufw disable
+Firewall stopped and disabled on system startup
+root@Ubuntu-server:~# ufw delete 2
+```
+
+Now add a new rule for `80`, this time with specified source IP address.
+```bash
+root@Ubuntu-server:~# ufw allow from 10.0.2.15 to any port 80
+Rules updated
+root@Ubuntu-server:~# ufw enable
+```
+> The `10.0.2.15` is the IP address of the network interface. In VirtualBox's NAT mode, the virtual machine (VM) receives a private IP address (e.g., `10.0.2.15` here) from the VirtualBox DHCP server, allowing it to communicate within a private network. When a request is made from the host (like `localhost:8080`), VirtualBox uses its NAT engine to translate this request to the VM's internal IP and port (e.g., `10.0.2.15:80`). The UFW rule ensures that traffic from the specified IP address is allowed through the firewall to reach the web service running on port 80, enabling the host to access the VM’s web application.
+
+You can see the result as below: 
+```bash
+root@Ubuntu-server:~# ufw status
+Status: active
+
+To                         Action      From
+--                         ------      ----
+22/tcp                     ALLOW       Anywhere
+443                        ALLOW       Anywhere
+80                         ALLOW       10.0.2.15
+22/tcp (v6)                ALLOW       Anywhere (v6)
+80 (v6)                    ALLOW       Anywhere (v6)
+443 (v6)                   ALLOW       Anywhere (v6)
+```
 
 </details>
 
