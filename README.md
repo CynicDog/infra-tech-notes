@@ -954,7 +954,15 @@ With the help of container's port-forwading, you can now navigate to the default
 
 ### Deploy a Vite-React App with Nginx on an Ubuntu Server in VirtualBox
 
-The build process for deploying the application in VirtualBox is the same as for creating a React app with Nginx in a Docker container. (Refer to [this guide](#create-a-vite-react-web-app-and-serve-with-nginx-on-docker-container))
+The build process for deploying the application in VirtualBox is the same as for creating a React app with Nginx in a Docker container (Refer to [this guide](#create-a-vite-react-web-app-and-serve-with-nginx-on-docker-container) in the chapter 7).
+
+However, since we're now working inside VirtualBox, one network configuration is needed, similar to Docker's port forwarding option.
+
+### Add a Port Forwarding Rule for the Nginx Process
+
+Navigate to the network settings of the Ubuntu Server instance. By default, the network is set to NAT. Click on **Port Forwarding** and add a new entry named `nginx`, with the host port set to `8080` and the guest port set to `80`.
+
+Now you can see the web app up and running in your host machine's browser.
 
 </details>
 
