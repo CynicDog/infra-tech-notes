@@ -962,7 +962,7 @@ However, since we're now working inside VirtualBox, one network configuration is
 
 ### Add a Port Forwarding Rule for the Nginx Process
 
-Navigate to the network settings of the Ubuntu Server instance. By default, the network is set to NAT. Click on **Port Forwarding** and add a new entry named `nginx`, with the host port set to `8080` and the guest port set to `80`.
+Navigate to the network settings of the Ubuntu Server instance. By default, the network is set to NAT. Click on **Port Forwarding** and add a new entry named `http`, with the host port set to `8080` and the guest port set to `80`.
 
 Now you can see the web app up and running in your host machine's browser with the url of `http://localhost:8080/`.
 
