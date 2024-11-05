@@ -951,12 +951,12 @@ With the help of container's port-forwading, you can now navigate to the default
 
 <details>
 <summary><h3>CH9. Securing your web server</h3></summary>
-</details>
 
 ### Deploy a Vite-React App with Nginx on an Ubuntu Server in VirtualBox
 
-First you need to .. 
+The build process for deploying the application in VirtualBox is the same as for creating a React app with Nginx in a Docker container. (Refer to [this guide](#create-a-vite-react-web-app-and-serve-with-nginx-on-docker-container))
 
+</details>
 
 </details>
 
