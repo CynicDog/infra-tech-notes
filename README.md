@@ -709,7 +709,7 @@ total size is 0  speedup is 0.00
 <details>
 <summary><h3>CH7. Web servers: building a React Web App with Apache Web Server</h3></summary>
 
-### Create a vite-react web app and Serve with Apache 
+### Create a vite-react web app and Serve with Apache on Docker Container
 
 #### Install necessary packages
 ```bash
@@ -804,7 +804,7 @@ root@b32690965a6e:/# curl http://172.19.0.2:80/
 ```
 > You might need to install `curl` first by running `apt install curl`. Note that the port of the web app is mapped to 80.  
 
-### Create a vite-react web app and Serve with nginx  
+### Create a vite-react web app and Serve with nginx on Docker Container 
 
 #### Turn off the Apache server if running. 
 ```bash
@@ -952,6 +952,11 @@ With the help of container's port-forwading, you can now navigate to the default
 <details>
 <summary><h3>CH9. Securing your web server</h3></summary>
 </details>
+
+### Deploy a Vite-React App with Nginx on an Ubuntu Server in VirtualBox
+
+First you need to .. 
+
 
 </details>
 
