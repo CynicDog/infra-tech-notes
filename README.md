@@ -1029,29 +1029,6 @@ Firewall stopped and disabled on system startup
 root@Ubuntu-server:~# ufw delete 2
 ```
 
-Now add a new rule for `80`, this time with specified source IP address.
-```bash
-root@Ubuntu-server:~# ufw allow from 10.0.2.15 to any port 80
-Rules updated
-root@Ubuntu-server:~# ufw enable
-```
-> The `10.0.2.15` is the IP address of the network interface. In VirtualBox's NAT mode, the virtual machine (VM) receives a private IP address (e.g., `10.0.2.15` here) from the VirtualBox DHCP server, allowing it to communicate within a private network. When a request is made from the host (like `localhost:8080`), VirtualBox uses its NAT engine to translate this request to the VM's internal IP and port (e.g., `10.0.2.15:80`). The UFW rule ensures that traffic from the specified IP address is allowed through the firewall to reach the web service running on port 80, enabling the host to access the VM’s web application.
-
-You can see the result as below: 
-```bash
-root@Ubuntu-server:~# ufw status
-Status: active
-
-To                         Action      From
---                         ------      ----
-22/tcp                     ALLOW       Anywhere
-443                        ALLOW       Anywhere
-80                         ALLOW       10.0.2.15
-22/tcp (v6)                ALLOW       Anywhere (v6)
-80 (v6)                    ALLOW       Anywhere (v6)
-443 (v6)                   ALLOW       Anywhere (v6)
-```
-
 </details>
 
 </details>
