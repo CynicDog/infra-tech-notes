@@ -1029,6 +1029,16 @@ Firewall stopped and disabled on system startup
 root@Ubuntu-server:~# ufw delete 2
 ```
 
+### Encrypting data in transit 
+
+Browsers authenticate your site's security and exchange encrypted data during a session. Modern browsers have preinstalled root certificates to authenticate sites using private <ins>**Certificate Authorities**</ins> (CAs). Here’s the process:
+
+1. The client browser requests the server's identity to initiate a **_handshake_**.
+2. The server sends its CA-issued certificate.
+3. The browser checks the certificate against its root certificate list and verifies it’s valid.
+4. If valid, the browser encrypts a session key with the server’s public key and sends it.
+5. All communications are encrypted using the session key.
+
 </details>
 
 </details>
