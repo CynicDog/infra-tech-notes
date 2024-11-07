@@ -3096,8 +3096,11 @@ API Version check skipped due to missing `--kubeconfig` or other error
 ```
 
 To verify the cluster’s networking functionality, run the following command:
+
+<details><summary><code>root@calico-control-plane:/# sonobuoy run --e2e-focus="Networking"</code><br></summary>
+<br>
+    
 ```bash
-root@calico-control-plane:/# sonobuoy run --e2e-focus="Networking"
 INFO[0000] create request issued                         name=sonobuoy namespace= resource=namespaces
 INFO[0000] create request issued                         name=sonobuoy-serviceaccount namespace=sonobuoy resource=serviceaccounts
 INFO[0000] create request issued                         name=sonobuoy-serviceaccount-sonobuoy namespace= resource=clusterrolebindings
@@ -3108,9 +3111,14 @@ INFO[0000] create request issued                         name=sonobuoy namespace
 INFO[0000] create request issued                         name=sonobuoy-aggregator namespace=sonobuoy resource=services
 ```
 
+</details>
+
 You can see the created resources about sonobuoy inside the cluster. 
+
+<details><summary><code>root@calico-control-plane:/# kubectl get all -n sonobuoy</code><br></summary>
+<br> 
+    
 ```bash
-root@calico-control-plane:/# kubectl get all -n sonobuoy
 NAME                                                          READY   STATUS    RESTARTS   AGE
 pod/sonobuoy                                                  1/1     Running   0          10m
 pod/sonobuoy-e2e-job-b364c8a55ba849d5                         2/2     Running   0          10m
@@ -3124,6 +3132,8 @@ NAME                                                               DESIRED   CUR
 daemonset.apps/sonobuoy-systemd-logs-daemon-set-5bdc643f12844fe5   2         2         2       2            2           kubernetes.io/os=linux   10m
 root@calico-control-plane:/#
 ```
+
+</details>
 
 You can also see the run process of sonobuoy by running the binary command: 
 ```bash
