@@ -3069,6 +3069,72 @@ Sonobuoy runs Kubernetes e2e tests in a container, simplifying result retrieval,
 
 Testing different CNIs offers valuable practice for troubleshooting real-world network issues. 
 
+### Sonobuoy: A tool for confirming the cluster's functionality  
+
+Let's install the sonobuoy on the calico cluster. 
+```bash
+root@calico-control-plane:/# curl -L -o sonobuoy_0.57.2_linux_amd64.tar.gz https://github.com/vmware-tanzu/sonobuoy/releases/download/v0.57.2/sonobuoy_0.57.2_linux_amd64.tar.gz
+```
+
+Unzip the file, give execution permission, and then copy to the binary to `/user/local/bin`. 
+```bash
+root@calico-control-plane:/# tar -xvf sonobuoy_0.57.2_linux_amd64.tar.gz
+root@calico-control-plane:/# chmod +x sonobuoy
+root@calico-control-plane:/# cp sonobuoy /usr/local/bin/
+```
+
+You can check if the right version is installed by running the following command.  
+```bash
+root@calico-control-plane:/# sonobuoy version
+Sonobuoy Version: v0.57.2
+MinimumKubeVersion: 1.17.0
+MaximumKubeVersion: 1.99.99
+GitSHA: cc22d58f4c8b5a155bd1778cd3702eca5ad43e05
+GoVersion: go1.22.4
+Platform: linux/amd64
+API Version check skipped due to missing `--kubeconfig` or other error
+```
+
+To verify the cluster’s networking functionality, run the following command:
+```bash
+root@calico-control-plane:/# sonobuoy run --e2e-focus="Networking"
+INFO[0000] create request issued                         name=sonobuoy namespace= resource=namespaces
+INFO[0000] create request issued                         name=sonobuoy-serviceaccount namespace=sonobuoy resource=serviceaccounts
+INFO[0000] create request issued                         name=sonobuoy-serviceaccount-sonobuoy namespace= resource=clusterrolebindings
+INFO[0000] create request issued                         name=sonobuoy-serviceaccount-sonobuoy namespace= resource=clusterroles
+INFO[0000] create request issued                         name=sonobuoy-config-cm namespace=sonobuoy resource=configmaps
+INFO[0000] create request issued                         name=sonobuoy-plugins-cm namespace=sonobuoy resource=configmaps
+INFO[0000] create request issued                         name=sonobuoy namespace=sonobuoy resource=pods
+INFO[0000] create request issued                         name=sonobuoy-aggregator namespace=sonobuoy resource=services
+```
+
+You can see the created resources about sonobuoy inside the cluster. 
+```bash
+root@calico-control-plane:/# kubectl get all -n sonobuoy
+NAME                                                          READY   STATUS    RESTARTS   AGE
+pod/sonobuoy                                                  1/1     Running   0          10m
+pod/sonobuoy-e2e-job-b364c8a55ba849d5                         2/2     Running   0          10m
+pod/sonobuoy-systemd-logs-daemon-set-5bdc643f12844fe5-wbbhx   2/2     Running   0          10m
+pod/sonobuoy-systemd-logs-daemon-set-5bdc643f12844fe5-xwfpj   2/2     Running   0          10m
+
+NAME                          TYPE        CLUSTER-IP    EXTERNAL-IP   PORT(S)    AGE
+service/sonobuoy-aggregator   ClusterIP   10.96.43.94   <none>        8080/TCP   10m
+
+NAME                                                               DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR            AGE
+daemonset.apps/sonobuoy-systemd-logs-daemon-set-5bdc643f12844fe5   2         2         2       2            2           kubernetes.io/os=linux   10m
+root@calico-control-plane:/#
+```
+
+You can also see the run process of sonobuoy by running the binary command: 
+```bash
+root@calico-control-plane:/# sonobuoy status
+         PLUGIN     STATUS   RESULT   COUNT                                PROGRESS
+            e2e    running                1   Passed:  0, Failed:  0, Remaining: 35
+   systemd-logs   complete                2
+
+Sonobuoy is still running. Runs can take 60 minutes or more depending on cluster and plugin configuration.
+```
+
 </details>
 
 </details> 
