@@ -3145,6 +3145,11 @@ root@calico-control-plane:/# sonobuoy status
 Sonobuoy is still running. Runs can take 60 minutes or more depending on cluster and plugin configuration.
 ```
 
+The result of the test will be retrieved by running the following command. 
+```bash
+root@calico-control-plane:/# sonobuoy retrieve
+```
+
 </details>
 
 </details> 
