@@ -3059,7 +3059,16 @@ In the bridged networking model (Antrea), there are a few key differences in dev
 
 Keep in mind that both Calico and Antrea create distinct subnets for nodes' Pod network. Both Calico and Antrea assign each node a unique subnet for its Pods, drawing individual IPs from that subnet for each Pod. 
 
-TODO: control plane pings to nginx pod in a worker node, inspect tcpdump as we did for calico cluster. 
+</details>
+
+
+<details>
+<summary><h3>CH6. Troubleshooting large-scale network errors</h3></summary>
+
+Sonobuoy runs Kubernetes e2e tests in a container, simplifying result retrieval, storage, and archiving. Built on the Kubernetes e2e testing library, Sonobuoy helps verify Kubernetes releases and ensure compliance with the Kubernetes API. Since Kubernetes is essentially an API, a compliant cluster is defined as one that passes the Kubernetes conformance test suite. 
+
+Testing different CNIs offers valuable practice for troubleshooting real-world network issues. 
 
 </details>
 
+</details> 
