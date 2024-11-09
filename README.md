@@ -3061,7 +3061,6 @@ Keep in mind that both Calico and Antrea create distinct subnets for nodes' Pod 
 
 </details>
 
-
 <details>
 <summary><h3>CH6. Troubleshooting large-scale network errors</h3></summary>
 
@@ -3149,6 +3148,34 @@ The result of the test will be retrieved by running the following command.
 ```bash
 root@calico-control-plane:/# sonobuoy retrieve
 ```
+
+#### Inspecting CNI routing on different providers with the arp and ip commands
+
+IP networking is based on using IP addresses to reach hardware devices. These devices operate at Layer 2 (the Data Link layer), which handles MAC addresses and enables communication between devices that recognize each other’s hardware addresses at this layer.
+
+The `antrea-gw0` device is a tunnel that enables <ins>**flat networking**</ins> between Pods in a cluster. If you're using a Calico cluster, you might see a similar device called `tun0`. These tunnels, such as `antrea-gw0`, correspond to the OVS gateway, which handles traffic for the Antrea CNI. The following shows the output of `ip a` on each cluster, first for Calico and then for Antrea. 
+
+```bash
+root@calico-control-plane:/# ip a
+... 
+2: tunl0@NONE: <NOARP> mtu 1480 qdisc noop state DOWN group default qlen 1000
+    link/ipip 0.0.0.0 brd 0.0.0.0
+... 
+```
+
+```bash
+root@antrea-control-plane:/# ip a
+...
+10: ip6gre0@NONE: <NOARP> mtu 1448 qdisc noop state DOWN group default qlen 1000
+    link/gre6 :: brd :: permaddr be9e:b1fe:452c::
+11: ovs-system: <BROADCAST,MULTICAST> mtu 1500 qdisc noop state DOWN group default qlen 1000
+    link/ether b6:5c:b1:ac:f1:68 brd ff:ff:ff:ff:ff:ff
+...
+```
+
+All packets are routed through special tunnels to reach the correct physical node before being delivered to a Pod. Since each node manages its own Pod-local traffic, we can use standard Linux tools to monitor Pod traffic without needing specific Kubernetes knowledge.
+
+
 
 </details>
 
