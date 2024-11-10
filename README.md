@@ -3207,8 +3207,8 @@ Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
 In this table for Antrea, any traffic destined for the `192.168.1.0` IP range is routed to `192.168.1.1`. This IP address is reserved on the CNI network for Antrea’s OVS-routing mechanism. Instead of routing directly to a node’s IP address, all traffic is sent to an IP address within the Pod network, where Antrea manages a switch service.
 
 Unlike Calico, which routes based on individual Pods, Antrea routes all traffic (including local traffic) through the Antrea gateway device. The gateway IP differentiates the traffic's final destination. Therefore:
-- Antrea has one routing table entry per node.
-- Calico has one routing table entry per Pod.
+- **Antrea** has <ins>one routing table entry **per node**</ins>.
+- **Calico** has <ins>one routing table entry **per Pod**</ins>.
 
 ### CNI-specific tooling 
 
