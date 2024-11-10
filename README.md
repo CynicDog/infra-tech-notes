@@ -3175,6 +3175,112 @@ root@antrea-control-plane:/# ip a
 
 All packets are routed through special tunnels to reach the correct physical node before being delivered to a Pod. Since each node manages its own Pod-local traffic, we can use standard Linux tools to monitor Pod traffic without needing specific Kubernetes knowledge.
 
+Now, let’s examine how our CNI manages traffic routing to tunnels by configuring the Linux routing table.
+
+```bash
+root@calico-control-plane:/# route -n
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+0.0.0.0         172.18.0.1      0.0.0.0         UG    0      0        0 eth0
+172.18.0.0      0.0.0.0         255.255.0.0     U     0      0        0 eth0
+192.168.9.128   172.18.0.5      255.255.255.192 UG    0      0        0 tunl0
+192.168.71.0    0.0.0.0         255.255.255.192 U     0      0        0 *
+192.168.71.1    0.0.0.0         255.255.255.255 UH    0      0        0 cali67d9f2747be
+192.168.71.2    0.0.0.0         255.255.255.255 UH    0      0        0 calic92c5e72432
+192.168.71.3    0.0.0.0         255.255.255.255 UH    0      0        0 calid6049caec0f
+192.168.71.4    0.0.0.0         255.255.255.255 UH    0      0        0 calicd0590ab6e7
+```
+> In a Calico cluster, running `route -n` shows how Calico manages routing using `cali` interfaces for Pods and `tunl0` interfaces for nodes. Calico relies on BGP for Layer 3 routing, allowing nodes to exchange routes directly.
+
+```bash
+root@antrea-control-plane:/# route -n
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+0.0.0.0         172.18.0.1      0.0.0.0         UG    0      0        0 eth0
+172.18.0.0      0.0.0.0         255.255.0.0     U     0      0        0 eth0
+192.168.0.0     0.0.0.0         255.255.255.0   U     0      0        0 antrea-gw0
+192.168.1.0     192.168.1.1     255.255.255.0   UG    0      0        0 antrea-gw0
+192.168.2.0     192.168.2.1     255.255.255.0   UG    0      0        0 antrea-gw0
+```
+> In contrast, Antrea clusters use a central `antrea-gw0` interface for traffic routing, supported by Open vSwitch (OVS). OVS operates at Layer 2, creating virtual switches within nodes, and relies on encapsulation to route cross-node traffic. 
+
+In this table for Antrea, any traffic destined for the `192.168.1.0` IP range is routed to `192.168.1.1`. This IP address is reserved on the CNI network for Antrea’s OVS-routing mechanism. Instead of routing directly to a node’s IP address, all traffic is sent to an IP address within the Pod network, where Antrea manages a switch service.
+
+Unlike Calico, which routes based on individual Pods, Antrea routes all traffic (including local traffic) through the Antrea gateway device. The gateway IP differentiates the traffic's final destination. Therefore:
+- Antrea has one routing table entry per node.
+- Calico has one routing table entry per Pod.
+
+### CNI-specific tooling 
+
+####  `antctl` for Antrea 
+The antctl binary is included in the Antrea Docker image (`antrea/antrea-ubuntu`) which means that there is no need to install anything to connect to the Antrea Agent. Simply exec into the antrea-agent container for the appropriate antrea-agent Pod and run antctl: 
+```bash
+root@antrea-control-plane:/# kubectl exec -it pod/antrea-agent-5krx6 -n kube-system -c antrea-agent -- bash
+root@antrea-worker:/# antctl version 
+agentVersion: 2.2.0-dev-47ce51e
+antctlVersion: v2.2.0-dev-47ce51e
+```
+
+Let's see the list of nodes in the Antrea cluster along with their current status. 
+```bash
+root@antrea-worker:/# antctl get memberlist
+NODE                 IP         STATUS
+antrea-control-plane 172.18.0.3 Alive 
+antrea-worker        172.18.0.2 Alive 
+```
+
+The interfaces for Pods are identified as below: 
+```bash
+root@antrea-worker:/# antctl get podinterface
+NAMESPACE          NAME                                    INTERFACE-NAME  IP          MAC               PORT-UUID                            OF-PORT CONTAINER-ID
+default            nginx                                   nginx-ca6c1b    192.168.2.4 9a:65:cb:3d:11:ad 7153dfcd-1e54-45be-bb4a-a2fd3c2e2048 3       7cb30f7f971 
+kube-system        coredns-6f6b679f8f-wp7rh                coredns--4526e6 192.168.2.3 ba:70:54:b0:40:8f 5b4f3d6f-f814-419d-855d-c160fcdf601b 2       8a7c01c0ec3 
+local-path-storage local-path-provisioner-57c5987fd4-8fwkw local-pa-8f222f 192.168.2.2 6a:87:73:69:a6:63 2874dd50-89dc-405b-af47-41ffd86b5ed8 1       9edf94c9d63 
+```
+
+#### `calicoctl` for Calico  
+
+For the tool for calico CNI implementation, we can install and give execution permission to `calicoctl`, a command-line tool for managing Calico networking.  
+
+```bash
+root@calico-control-plane:~# curl -L https://github.com/projectcalico/calico/releases/download/v3.28.2/calicoctl-linux-amd64 -o calicoctl
+root@calico-control-plane:~# mv calicoctl usr/local/bin/
+root@calico-control-plane:~# chmod +x usr/local/bin/calicoctl
+root@calico-control-plane:~# calicoctl version
+Client Version:    v3.28.2
+Git commit:        9a96ee39f
+Cluster Version:   v3.28.2
+Cluster Type:      k8s,bgp,kubeadm,kdd
+```
+
+The node status reads as below: 
+```bash
+root@calico-control-plane:/# calicoctl node status
+Calico process is running.
+
+IPv4 BGP status
++--------------+-------------------+-------+----------+-------------+
+| PEER ADDRESS |     PEER TYPE     | STATE |  SINCE   |    INFO     |
++--------------+-------------------+-------+----------+-------------+
+| 172.18.0.5   | node-to-node mesh | up    | 08:50:32 | Established |
++--------------+-------------------+-------+----------+-------------+
+
+IPv6 BGP status
+No IPv6 peers found.
+```
+
+The calicoctl ippool command is used to manage and inspect IP address pools in Calico, including creating, modifying, and deleting IP pools for pod IP assignment and network configuration.
+```bash
+root@calico-control-plane:/# calicoctl get ippool
+NAME                  CIDR             SELECTOR   
+default-ipv4-ippool   192.168.0.0/16   all()    
+```
+
+To see the Pod interfaces, run: 
+```bash
+root@calico-control-plane:/# calicoctl get workloadendpoint
+WORKLOAD   NODE   NETWORKS   INTERFACE   
+```
 
 
 </details>
