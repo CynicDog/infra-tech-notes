@@ -3603,4 +3603,122 @@ The process works as follows:
 
 </details>
 
+<details>
+<summary><h3>CH7. Pod storage and CSI</h3></summary>
+
+Kubernetes uses <ins>**PersistentVolume**</ins>(PV), <ins>**PersistentVolumeClaim**</ins> (PVC), and <ins>**StorageClass**</ins> to manage storage:
+
+- PVs allow administrators to manage disk volumes.
+- PVCs enable applications (via Pods) to request and use these volumes.
+- StorageClass abstracts the implementation details, allowing developers to request a PVC without specifying the underlying PV type.
+
+### Three types of storage requirements for Kubernetes
+
+Kubernetes storage has three main types:
+
+1. **Docker/containerd/CRI storage**: The copy-on-write filesystem running containers, using filesystems like btrfs or overlay2. Containers use this layer to manage changes without affecting the host system.
+
+2. **Kubernetes infrastructure storage**: Volumes like hostPath or Secret, used on kubelets for local data sharing, such as storing secrets or directories used by storage/network plugins.
+
+3. **Application storage**: Volumes used by Pods for persistent data storage, specified in Pod configurations. Common types include OpenEBS, NFS, GCE, EC2, and vSphere persistent disks.
+
+Our kind cluster includes a built-in storage provider. When we request a Pod with a new PVC that hasn't been created yet and has no associated volume, Kubernetes will handle the creation. To check the available storage providers in the cluster, run the `kubectl get sc` command:
+```bash
+root@calico-ingress-control-plane:/# kubectl get sc
+NAME                 PROVISIONER             RECLAIMPOLICY   VOLUMEBINDINGMODE      ALLOWVOLUMEEXPANSION   AGE
+standard (default)   rancher.io/local-path   Delete          WaitForFirstConsumer   false                  3h
+```
+
+To demonstrate how Pods share data between containers and mount multiple storage points with different semantics, we'll run a Pod with two containers and two volumes as below:
+```bash
+root@calico-ingress-control-plane:/# cat nginx-with-storage.yml
+```
+
+<details><summary>The details of <code>nginx-with-storage.yml</code> reads: </summary>
+<br>
+
+```bash
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: dynamic1
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100k
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+spec:
+  containers:
+  - image: busybox
+    name: busybox
+    command: ["sleep", "3600"]
+    volumeMounts:
+      - mountPath: /shared
+        name: shared
+  - image: nginx
+    imagePullPolicy: Always
+    name: nginx
+    ports:
+    - containerPort: 80
+      protocol: TCP
+    volumeMounts:
+      - mountPath: /var/www
+        name: dynamic1
+      - mountPath: /shared
+        name: shared
+  nodeSelector:
+    calico-node: calico-worker
+  volumes:
+  - name: dynamic1
+    persistentVolumeClaim:
+      claimName: dynamic1
+  - name: shared
+    emptyDir: {}
+```
+> [1] The `busybox` container mounts an emptyDir volume (`shared`) at `/shared`.
+>
+> [2] The `nginx` container mounts a PVC volume (`dynamic1`) at `/var/www` and the `shared` volume at `/shared`.
+</details> 
+
+Now we can access to `busybox` container in the `nginx` Pod and write out a file by running the following command: 
+```bash
+root@calico-ingress-control-plane:/# kubectl exec -i -t nginx -t busybox -- /bin/sh
+~ # touch /shared/hello_world
+```
+
+The Pod now has two volumes: one ephemeral and one persistent. You can see logs about the persistent volume as below:  
+
+<details><summary><code>root@calico-ingress-control-plane:/# kubectl logs pod/local-path-provisioner-988d74bc-gzgkc -n local-path-storage</code></summary>
+<br> 
+ 
+```bash
+time="2024-11-11T04:37:04Z" level=debug msg="Applied config: {\"nodePathMap\":[{\"node\":\"DEFAULT_PATH_FOR_NON_LISTED_NODES\",\"paths\":[\"/var/local-path-provisioner\"]}]}"
+time="2024-11-11T04:37:04Z" level=debug msg="Provisioner started"
+I1111 04:37:04.382444       1 controller.go:811] Starting provisioner controller rancher.io/local-path_local-path-provisioner-988d74bc-gzgkc_8010025f-aefc-464d-8568-5fd938a00cb1!
+I1111 04:37:04.482922       1 controller.go:860] Started provisioner controller rancher.io/local-path_local-path-provisioner-988d74bc-gzgkc_8010025f-aefc-464d-8568-5fd938a00cb1!
+I1111 07:45:25.728414       1 controller.go:1337] provision "default/dynamic1" class "standard": started
+time="2024-11-11T07:45:25Z" level=debug msg="config doesn't contain node calico-ingress-worker, use DEFAULT_PATH_FOR_NON_LISTED_NODES instead"
+I1111 07:45:25.762061       1 event.go:282] Event(v1.ObjectReference{Kind:"PersistentVolumeClaim", Namespace:"default", Name:"dynamic1", UID:"68e5f52a-4860-4693-b558-06a7ec8ff3c7", APIVersion:"v1", ResourceVersion:"21510", FieldPath:""}): type: 'Normal' reason: 'Provisioning' External provisioner is provisioning volume for claim "default/dynamic1"
+time="2024-11-11T07:45:25Z" level=info msg="Creating volume pvc-68e5f52a-4860-4693-b558-06a7ec8ff3c7 at calico-ingress-worker:/var/local-path-provisioner/pvc-68e5f52a-4860-4693-b558-06a7ec8ff3c7_default_dynamic1"
+time="2024-11-11T07:45:25Z" level=info msg="create the helper pod helper-pod-create-pvc-68e5f52a-4860-4693-b558-06a7ec8ff3c7 into local-path-storage"
+time="2024-11-11T07:45:28Z" level=info msg="Volume pvc-68e5f52a-4860-4693-b558-06a7ec8ff3c7 has been created on calico-ingress-worker:/var/local-path-provisioner/pvc-68e5f52a-4860-4693-b558-06a7ec8ff3c7_default_dynamic1"
+I1111 07:45:28.816917       1 controller.go:1442] provision "default/dynamic1" class "standard": volume "pvc-68e5f52a-4860-4693-b558-06a7ec8ff3c7" provisioned
+I1111 07:45:28.816965       1 controller.go:1455] provision "default/dynamic1" class "standard": succeeded
+I1111 07:45:28.818131       1 volume_store.go:212] Trying to save persistentvolume "pvc-68e5f52a-4860-4693-b558-06a7ec8ff3c7"
+I1111 07:45:28.826173       1 volume_store.go:219] persistentvolume "pvc-68e5f52a-4860-4693-b558-06a7ec8ff3c7" saved
+I1111 07:45:28.826440       1 event.go:282] Event(v1.ObjectReference{Kind:"PersistentVolumeClaim", Namespace:"default", Name:"dynamic1", UID:"68e5f52a-4860-4693-b558-06a7ec8ff3c7", APIVersion:"v1", ResourceVersion:"21510", FieldPath:""}): type: 'Normal' reason: 'ProvisioningSucceeded' Successfully provisioned volume pvc-68e5f52a-4860-4693-b558-06a7ec8ff3c7
+```
+
+</details>
+
+
+
+</details>
+
 </details> 
