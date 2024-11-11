@@ -3658,7 +3658,7 @@ spec:
   - image: busybox
     name: busybox
     command: ["sleep", "3600"]
-    volumeMounts:
+    volumeMounts:                  [1]
       - mountPath: /shared
         name: shared
   - image: nginx
@@ -3667,7 +3667,7 @@ spec:
     ports:
     - containerPort: 80
       protocol: TCP
-    volumeMounts:
+    volumeMounts:                  [2]
       - mountPath: /var/www
         name: dynamic1
       - mountPath: /shared
