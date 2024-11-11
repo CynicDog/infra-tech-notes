@@ -3593,6 +3593,14 @@ x-envoy-upstream-service-time: 0
 ```
 > [1] `server: envoy` entry indicates that the request has been routed through the Contour-managed Envoy proxy. Envoy acts as the ingress controller, forwarding the traffic to the appropriate service in the Kubernetes cluster (in this case, the nginx service). 
 
+The process works as follows:
+
+1. On the local machine, the client issues `curl web.local` on port `80`, which resolves to IP address `127.0.0.1`.
+2. The traffic directed to localhost is intercepted by the Docker node in the kind cluster, which is listening on port `80`.
+3. The Docker node forwards the traffic to the Contour ingress controller.
+4. Contour’s ingress controller identifies the request for `web.local` and routes it accordingly.
+5. Finally, the traffic is forwarded from the Contour ingress controller to the backend service, `web`.
+
 </details>
 
 </details> 
