@@ -3390,7 +3390,99 @@ root@web-2:/# curl 192.168.9.175:80  [1]
 </html>
 ```
 > [1] The ip address asigned to `web` Pod.  
- 
+
+A reliable way to consistently test these CNI-created policies is <ins>by deploying a **DaemonSet**</ins> that runs the same container on all nodes.
+
+### Ingress Controllers 
+
+Ingress controllers enable routing all cluster traffic through a single IP address. Ingress controllers can be challenging to debug since they are add-ons. To address this, the Kubernetes community has considered providing a default ingress controller. 
+
+- **NGINX Ingress Controller**: A widely-used ingress controller in Kubernetes, providing HTTP and HTTPS routing based on NGINX. It supports advanced routing rules, SSL termination, and load balancing.
+
+- **Contour**: An ingress controller based on Envoy proxy, known for its high performance, HTTP/2 and gRPC support, and simplified configuration with CRDs.
+
+- **Gateway API**: A newer standard for defining and managing networking in Kubernetes clusters, offering greater flexibility than traditional ingress controllers, with support for complex traffic routing and future extensibility.
+
+To add an ingress controller to a Kubernetes cluster, we'll create a Kind cluster that forwards ingress traffic to port `80`. The Contour ingress controller will handle this traffic, allowing us to bind multiple services by name to port `80`.
+
+Run the following command: 
+```bash
+PS C:\Users> kind create cluster --name=calico-ingress --config=kind-Calico-conf-2.yml
+```
+<details><summary>where the <code>kind-Calico-conf-2.yml</code> reads as: </summary>
+<br>
+
+```bash
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+networking:
+  disableDefaultCNI: true 
+  podSubnet: 192.168.0.0/16 
+nodes:
+- role: control-plane
+- role: worker
+  extraPortMappings:
+  - containerPort: 80
+    hostPort: 80
+    listenAddress: "0.0.0.0"
+  - containerPort: 443
+    hostPort: 443
+    listenAddress: "0.0.0.0"
+```
+> The extra port mappings in this code let us access port 80 from our local terminal, forwarding traffic to that port on our Kind nodes. This setup only works with single-node clusters since only one port can be exposed when using Docker-based Kubernetes nodes locally.
+
+After creating the Kind cluster, we'll install Calico, establishing a basic Pod-to-Pod network. To install the Calico CNI, follow the [instructions](https://github.com/CynicDog/infra-tech-notes/tree/main?tab=readme-ov-file#install-calico-cni-provider) in Chapter 5.
+
+Next, we deploy a simple web app using the nginx image with the following specifications:
+
+```bash
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+  labels:
+    app: nginx 
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+    imagePullPolicy: IfNotPresent
+    ports:
+    - containerPort: 80
+  nodeSelector:
+    calico-node: calico-worker
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+spec:
+  selector:
+    app: nginx 
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 80
+```
+</details>
+
+Now let's create a temporary `ubuntu` Pod for debugging the Pod-to-Pod connectivity.
+```bash
+root@calico-ingress-control-plane:/# kubectl run test-pod --image=busybox --restart=Never -- sleep 3600
+root@calico-ingress-control-plane:/# kubectl exec -it test-pod -- sh
+```
+
+Once you are inside the `busybox` container, you can make requests to `nginx` pod that is deployed as a Service with hostname.
+```sh
+/ # wget nginx:8080
+/ # cat index.html
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+...
+```
+
 </details>
 
 </details> 
