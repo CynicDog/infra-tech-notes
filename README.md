@@ -3435,7 +3435,7 @@ After creating the Kind cluster, we'll install Calico, establishing a basic Pod-
 
 Next, we deploy a simple web app using the nginx image with the following specifications:
 
-```bash
+```yaml
 apiVersion: v1
 kind: Pod
 metadata:
