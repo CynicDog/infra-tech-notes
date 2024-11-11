@@ -3282,7 +3282,115 @@ root@calico-control-plane:/# calicoctl get workloadendpoint
 WORKLOAD   NODE   NETWORKS   INTERFACE   
 ```
 
+### CNIs with NetworkPolicies 
 
+**Ingress** rules and **NetworkPolicies** are powerful Kubernetes networking features. They’re defined by the API but rely on optional external services for implementation within a cluster.
+
+NetworkPolicies in Kubernetes control traffic for Pods, essential for securing a production cluster. Here’s a quick overview:
+
+- Created within a namespace and target Pods by label.
+- Must define a type (ingress is default).
+- Allow-only, deny by default, and can be layered to allow more traffic.
+- **Calico** <ins>uses **iptables**</ins>; **Antrea** <ins>uses **OVS**</ins> for implementation.
+- Some CNIs, like Flannel, don’t support NetworkPolicies.
+- Cilium and OVN Kubernetes partially implement the NetworkPolicy spec (e.g., missing PortRange or NamedPort).
+
+In this section, we’ll create a network policy and observe its impact on routing rules in Calico and Antrea. We’ll start by testing a NetworkPolicy that blocks all traffic to a Pod named `web`. Let's create an nginx web server first.  
+
+```bash
+root@calico-control-plane:/# kubectl create -f web.yml
+```
+
+<details><summary>Where the <code>web.yml</code> reads:</summary>
+<br>
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: web
+  labels:
+    app: web
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+    imagePullPolicy: IfNotPresent
+  nodeSelector:
+    calico-node: calico-worker
+```
+> This configuration will create a Pod on the node named `calico-worker`. Make sure you label the calico worker as specified in `nodeSelector`  
+
+</details>   
+
+Upon the `web` Pod, let's apply our first NetworkPolicy which blocks all traffic. 
+```yaml
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: web-deny-all
+spec:
+  podSelector:
+    matchLabels:
+      app: web
+  ingress: []
+```
+> After applying the `web-deny-all` network policy, you will no longer be able to access the web server with requests being blocked.
+
+Now, let's apply a NetworkPolicy with an ingress rule that allows requests from `web-2` to `web`. 
+
+<details><summary>The configuration of <code>web-2</code> reads:</summary>
+<br>
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: web-2
+  labels:
+    app: web-2
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+    imagePullPolicy: IfNotPresent
+  nodeSelector:
+    calico-node: calico-worker
+```
+</details> 
+
+And the network policy specifies as:
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: web-allow-from-web-2
+spec:
+  podSelector:
+    matchLabels:
+      app: web
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: web-2
+```
+
+With the new network policy applied, you’ll notice that the `web` server is inaccessible from the control plane node, but accessible from `web-2` as shown below:
+```bash
+root@calico-control-plane:/# kubectl exec -it pod/web-2 -- /bin/bash
+root@web-2:/# curl 192.168.9.175:80  [1] 
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+...
+</html>
+```
+> [1] The ip address asigned to `web` Pod.  
+ 
 </details>
 
 </details> 
