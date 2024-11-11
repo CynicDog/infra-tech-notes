@@ -3559,7 +3559,7 @@ spec:
 
 Now that the ingress controller is installed to manage all external traffic, the next step is to add an entry to the `/etc/hosts` file on your local machine, so you can access the service via localhost:
 ```bash
-$ echo "127.0.0.1   nginx.local" >> /etc/hosts
+$ echo "127.0.0.1   web.local" >> /etc/hosts
 ```
 > For Windows, the equivalent command would be: `PS C:\WINDOWS\system32> Add-Content C:\Windows\System32\drivers\etc\hosts "127.0.0.1 web.local"`. Make syre you run the PowerShell as Administrator.
 
