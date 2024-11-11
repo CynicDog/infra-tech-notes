@@ -3399,7 +3399,7 @@ Ingress controllers enable routing all cluster traffic through a single IP addre
 
 - **NGINX Ingress Controller**: A widely-used ingress controller in Kubernetes, providing HTTP and HTTPS routing based on NGINX. It supports advanced routing rules, SSL termination, and load balancing.
 
-- **Contour**: An ingress controller based on Envoy proxy, known for its high performance, HTTP/2 and gRPC support, and simplified configuration with CRDs.
+- **Contour**: An ingress controller based on <ins>**Envoy**</ins> proxy, known for its high performance, HTTP/2 and gRPC support, and simplified configuration with CRDs.
 
 - **Gateway API**: A newer standard for defining and managing networking in Kubernetes clusters, offering greater flexibility than traditional ingress controllers, with support for complex traffic routing and future extensibility.
 
@@ -3439,31 +3439,35 @@ Next, we deploy a simple web app using the nginx image with the following specif
 apiVersion: v1
 kind: Pod
 metadata:
-  name: nginx
+  name: web
   labels:
-    app: nginx 
+    app: web 
 spec:
   containers:
   - name: nginx
     image: nginx
     imagePullPolicy: IfNotPresent
     ports:
-    - containerPort: 80
+    - containerPort: 80 [1] 
   nodeSelector:
     calico-node: calico-worker
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: nginx
+  name: web
 spec:
   selector:
-    app: nginx 
+    app: web 
   ports:
     - protocol: TCP
       port: 8080
-      targetPort: 80
+      targetPort: 80 [2] 
 ```
+> [1] Set the container port to 80 (default for nginx)
+> 
+> [2] Map the service port to the container's port `80`
+
 </details>
 
 Now let's create a temporary `ubuntu` Pod for debugging the Pod-to-Pod connectivity.
@@ -3472,9 +3476,9 @@ root@calico-ingress-control-plane:/# kubectl run test-pod --image=busybox --rest
 root@calico-ingress-control-plane:/# kubectl exec -it test-pod -- sh
 ```
 
-Once you are inside the `busybox` container, you can make requests to `nginx` pod that is deployed as a Service with hostname.
+Once you are inside the `busybox` container, you can make requests to `web` pod that is deployed as a Service with hostname.
 ```sh
-/ # wget nginx:8080
+/ # wget web:8080
 / # cat index.html
 <!DOCTYPE html>
 <html>
@@ -3482,6 +3486,112 @@ Once you are inside the `busybox` container, you can make requests to `nginx` po
 <title>Welcome to nginx!</title>
 ...
 ```
+
+Let’s say we want to access this service from the outside world. To achieve this, we need to:
+
+1. Add the service to an ingress resource, allowing the Kubernetes API to route traffic to it.
+2. Set up an ingress controller to forward external traffic to the internal service.
+
+We’ll use Contour to access this service. First we need to do is to clone the contour project. 
+```bash
+root@calico-ingress-control-plane:~# git clone https://github.com/projectcontour/contour.git
+```
+> Make sure you have `git` tool installed in the cluster before running the command above. 
+
+Then create contour's Kubernetes resource by running the following command: 
+```bash
+root@calico-ingress-control-plane:/# kubectl apply -f contour/examples/contour/
+```
+
+You can see the resources of contour successfully created by running: 
+
+<details><summary><code>root@calico-ingress-control-plane:/# kubectl get all -n projectcontour</code></summary>
+<br>
+
+```bash
+NAME                           READY   STATUS    RESTARTS   AGE
+pod/contour-7f9db5666c-qqvjn   1/1     Running   0          26m
+pod/contour-7f9db5666c-x82kd   1/1     Running   0          26m
+pod/envoy-dblt8                2/2     Running   0          26m
+
+NAME              TYPE           CLUSTER-IP      EXTERNAL-IP   PORT(S)                      AGE
+service/contour   ClusterIP      10.96.194.1     <none>        8001/TCP                     26m
+service/envoy     LoadBalancer   10.96.253.231   <pending>     80:31976/TCP,443:32150/TCP   26m
+
+NAME                   DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE
+daemonset.apps/envoy   1         1         1       1            1           <none>          26m
+
+NAME                      READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/contour   2/2     2            2           26m
+
+NAME                                 DESIRED   CURRENT   READY   AGE
+replicaset.apps/contour-7f9db5666c   2         2         2       26m
+
+```
+</details>
+
+Let's create an ingress resource for the controller.
+
+Run the following command:
+```bash
+root@calico-ingress-control-plane:/# kubectl apply -f ingress.yml
+```
+
+The details of the `ingress.yml` file are as follows: 
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress
+spec:
+  rules:
+  - host: web.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: web
+            port:
+              number: 8080
+```
+
+Now that the ingress controller is installed to manage all external traffic, the next step is to add an entry to the `/etc/hosts` file on your local machine, so you can access the service via localhost:
+```bash
+$ echo "127.0.0.1   nginx.local" >> /etc/hosts
+```
+> For Windows, the equivalent command would be: `PS C:\WINDOWS\system32> Add-Content C:\Windows\System32\drivers\etc\hosts "127.0.0.1 web.local"`. Make syre you run the PowerShell as Administrator.
+
+We can then make a request to the `web` service deployed on our kind cluster, exposed by the `Envoy` proxy.
+
+```bash
+PS C:\Users> http -v http://web.local
+GET / HTTP/1.1
+Accept: */*
+Accept-Encoding: gzip, deflate
+Connection: keep-alive
+Host: web.local
+User-Agent: HTTPie/3.2.2
+
+HTTP/1.1 200 OK
+accept-ranges: bytes
+content-encoding: gzip
+content-type: text/html
+date: Mon, 11 Nov 2024 05:49:57 GMT
+last-modified: Wed, 02 Oct 2024 15:13:19 GMT
+server: envoy   [1]
+transfer-encoding: chunked
+vary: Accept-Encoding
+x-envoy-upstream-service-time: 0
+
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+... 
+```
+> [1] `server: envoy` entry indicates that the request has been routed through the Contour-managed Envoy proxy. Envoy acts as the ingress controller, forwarding the traffic to the appropriate service in the Kubernetes cluster (in this case, the nginx service). 
 
 </details>
 
