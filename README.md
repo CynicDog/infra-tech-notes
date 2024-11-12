@@ -3717,7 +3717,47 @@ I1111 07:45:28.826440       1 event.go:282] Event(v1.ObjectReference{Kind:"Persi
 
 </details>
 
+The container runs continuously as a controller in the cluster. When it detects a request for a volume named `dynamic2`, it creates the volume. Once created, Kubernetes automatically binds the volume to the PVC. In Kubernetes, if a volume meets the PVC's requirements, a binding event occurs.
 
+The creation of this volume without manually defining a PersistentVolume demonstrates dynamic storage in the cluster. To view the dynamically generated volumes, use the following command:
+
+```bash
+root@calico-ingress-control-plane:/# kubectl get pv
+NAME                                       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM              STORAGECLASS   VOLUMEATTRIBUTESCLASS   REASON   AGE
+pvc-68e5f52a-4860-4693-b558-06a7ec8ff3c7   100k       RWO            Delete           Bound    default/dynamic1   standard       <unset>                          21h
+```
+
+When a default storage class is defined, a PVC without a specified storage class is automatically assigned the default class if one exists. This is done by an admission controller that modifies new Pods before they enter the API server, adding the default storage class label. With this label, the volume provisioner (e.g., `local-path-provisioner` bundled with Kind) detects the Pod’s storage request and creates the volume.
+
+Since Pods can use various types of storage, a pluggable storage provider is needed for Kubernetes. This is the purpose of the CSI interface.
+
+### CSI: How a storage driver works
+
+Similar to the CNI, the CSI standard usually deploys a DaemonSet on all nodes to manage mounting (similar to how CNI agents handle IP injection for namespaces). The CSI also enables easy swapping of storage types and running multiple storage types simultaneously, thanks to its specific volume-naming convention—something that’s more difficult to achieve with networks.
+
+The CSI specification defines a generic set of functionalities, enabling the creation of a storage service without specifying its implementation.
+
+The CSI specification defines three key services:
+
+- **Identity services**: Allow plugins to self-identify, helping Kubernetes confirm available storage types.
+- **Node services**: Enable the kubelet to interact with local services for storage operations, often via vendor-specific binaries and gRPC.
+- **Controller services**: Manage the lifecycle of volumes, acting as a bridge between Kubernetes and the storage provider by monitoring volume operations in the API.
+
+> The specifications can be found [here](https://github.com/container-storage-interface/spec/blob/master/csi.proto).
+
+A CSI storage plugin handles three main steps for mounting storage to a Pod: registering a driver, requesting a volume, and publishing (mounting) the volume.
+
+1. **Registering a driver**: The storage driver is registered with Kubernetes, telling it how to handle that storage type and making it available for the kubelet.
+  
+2. **Requesting a volume**: The external provisioner watches PVCs and calls the `CreateVolume` function with the correct CSI driver. This triggers the backend storage to create the volume.
+
+3. **Publishing the volume**: The volume is mounted to the Pod by the CSI driver on each node, allowing the kubelet to mount it to the container's required location for data access.
+
+Each step is managed by separate components, with the driver name and volume request crucial for proper volume creation and mounting.
+
+Mounts in Kubernetes, like in Linux, expose directories to new locations under the `/` tree, with this operation called a **bind mount**. The CSI interface defines the contract for mounting external storage volumes into Pods. Kubernetes uses several services to coordinate API calls for this process.
+
+Since CSI drivers are containerized and managed by vendors, the kubelet must support **mount propagation**, allowing mounts to be created within containers, which is essential for Kubernetes to function properly.
 
 </details>
 
