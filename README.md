@@ -3961,8 +3961,233 @@ Nov 13 01:00:27 antrea-control-plane kubelet[233]: I1113 01:00:27.964542     233
 Nov 13 01:00:27 antrea-control-plane kubelet[233]: I1113 01:00:27.964554     233 container_manager_linux.go:300] "Creating device plugin manager"
 ...
 ```
-    
 </details>
+
+The kubelet doesn’t run containers directly; <ins>it relies on a **container runtime** like _containerd_ or _runC_ via the CRI interface</ins>. The CRI handles container management tasks, while the kubelet ensures Pods are scheduled and monitored. For example, runC can manually run any image, and you can use commands like `docker ps` to list running containers locally or export images as tarballs.
+
+Here are the steps to demonstrate how to use runC with a Docker container: 
+
+#### List running containers with docker ps
+```bash
+root@cynicdog:~# docker ps
+CONTAINER ID   IMAGE                  COMMAND                  CREATED        STATUS       PORTS                                      NAMES
+965c0281bdc5   kindest/node:v1.31.2   "/usr/local/bin/entr…"   25 hours ago   Up 6 hours   127.0.0.1:41691->6443/tcp                  antrea-control-plane
+c35b4c21920a   kindest/node:v1.31.2   "/usr/local/bin/entr…"   25 hours ago   Up 6 hours   0.0.0.0:80->80/tcp, 0.0.0.0:443->443/tcp   antrea-worker
+```
+
+#### Export the container image as a tarball 
+```bash
+root@cynicdog:~# docker export 965c0281bdc5 > /tmp/antrea-control-plane.tar 
+```
+
+#### Create a directory to unpack the tarball
+```bash
+root@cynicdog:~# cd /tmp 
+root@cynicdog:/tmp# mkdir antrea-control-plane && mv antrea-control-plane.tar ./antrea-control-plane && cd antrea-control-plane
+```
+
+#### Extract the tarball contents 
+```bash
+root@cynicdog:/tmp/antrea-control-plane# tar xf antrea-control-plane.tar
+```
+
+#### Generate the OCI spec using runC and check out the `config.json` 
+```bash
+root@cynicdog:/tmp/antrea-control-plane# runc spec
+root@cynicdog:/tmp/antrea-control-plane# cat config.json
+```
+
+<details><summary>The details of <code>config.json</code> reads as:</summary>
+<br>
+
+```json
+{
+        "ociVersion": "1.0.2-dev",
+        "process": {
+                "terminal": true,
+                "user": {
+                        "uid": 0,
+                        "gid": 0
+                },
+                "args": [
+                        "sh"
+                ],
+                "env": [
+                        "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                        "TERM=xterm"
+                ],
+                "cwd": "/",
+                "capabilities": {
+                        "bounding": [
+                                "CAP_AUDIT_WRITE",
+                                "CAP_KILL",
+                                "CAP_NET_BIND_SERVICE"
+                        ],
+                        "effective": [
+                                "CAP_AUDIT_WRITE",
+                                "CAP_KILL",
+                                "CAP_NET_BIND_SERVICE"
+                        ],
+                        "permitted": [
+                                "CAP_AUDIT_WRITE",
+                                "CAP_KILL",
+                                "CAP_NET_BIND_SERVICE"
+                        ],
+                        "ambient": [
+                                "CAP_AUDIT_WRITE",
+                                "CAP_KILL",
+                                "CAP_NET_BIND_SERVICE"
+                        ]
+                },
+                "rlimits": [
+                        {
+                                "type": "RLIMIT_NOFILE",
+                                "hard": 1024,
+                                "soft": 1024
+                        }
+                ],
+                "noNewPrivileges": true
+        },
+        "root": {
+                "path": "rootfs",
+                "readonly": true
+        },
+        "hostname": "runc",
+        "mounts": [
+                {
+                        "destination": "/proc",
+                        "type": "proc",
+                        "source": "proc"
+                },
+                {
+                        "destination": "/dev",
+                        "type": "tmpfs",
+                        "source": "tmpfs",
+                        "options": [
+                                "nosuid",
+                                "strictatime",
+                                "mode=755",
+                                "size=65536k"
+                        ]
+                },
+                {
+                        "destination": "/dev/pts",
+                        "type": "devpts",
+                        "source": "devpts",
+                        "options": [
+                                "nosuid",
+                                "noexec",
+                                "newinstance",
+                                "ptmxmode=0666",
+                                "mode=0620",
+                                "gid=5"
+                        ]
+                },
+                {
+                        "destination": "/dev/shm",
+                        "type": "tmpfs",
+                        "source": "shm",
+                        "options": [
+                                "nosuid",
+                                "noexec",
+                                "nodev",
+                                "mode=1777",
+                                "size=65536k"
+                        ]
+                },
+                {
+                        "destination": "/dev/mqueue",
+                        "type": "mqueue",
+                        "source": "mqueue",
+                        "options": [
+                                "nosuid",
+                                "noexec",
+                                "nodev"
+                        ]
+                },
+                {
+                        "destination": "/sys",
+                        "type": "sysfs",
+                        "source": "sysfs",
+                        "options": [
+                                "nosuid",
+                                "noexec",
+                                "nodev",
+                                "ro"
+                        ]
+                },
+                {
+                        "destination": "/sys/fs/cgroup",
+                        "type": "cgroup",
+                        "source": "cgroup",
+                        "options": [
+                                "nosuid",
+                                "noexec",
+                                "nodev",
+                                "relatime",
+                                "ro"
+                        ]
+                }
+        ],
+        "linux": {
+                "resources": {
+                        "devices": [
+                                {
+                                        "allow": false,
+                                        "access": "rwm"
+                                }
+                        ]
+                },
+                "namespaces": [
+                        {
+                                "type": "pid"
+                        },
+                        {
+                                "type": "network"
+                        },
+                        {
+                                "type": "ipc"
+                        },
+                        {
+                                "type": "uts"
+                        },
+                        {
+                                "type": "mount"
+                        },
+                        {
+                                "type": "cgroup"
+                        }
+                ],
+                "maskedPaths": [
+                        "/proc/acpi",
+                        "/proc/asound",
+                        "/proc/kcore",
+                        "/proc/keys",
+                        "/proc/latency_stats",
+                        "/proc/timer_list",
+                        "/proc/timer_stats",
+                        "/proc/sched_debug",
+                        "/sys/firmware",
+                        "/proc/scsi"
+                ],
+                "readonlyPaths": [
+                        "/proc/bus",
+                        "/proc/fs",
+                        "/proc/irq",
+                        "/proc/sys",
+                        "/proc/sysrq-trigger"
+                ]
+        }
+```
+</details>
+
+A pause container is required because:
+
+- It waits for the network namespace, enabling containers in a pod to share a single IP and communicate over `127.0.0.1`.
+- It pauses until the filesystem is available, allowing containers to share data via `emptyDir`.
+- Once the pod is set up, each container runs with the same namespace parameters. 
+
+While the kubelet doesn’t run containers, it manages the logic behind pod creation, ensuring Kubernetes guarantees networking and storage for containers.
 
 </details>
 
