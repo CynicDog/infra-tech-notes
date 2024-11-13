@@ -3764,7 +3764,7 @@ Since CSI drivers are containerized and managed by vendors, the kubelet must sup
 <details>
 <summary><h3>CH8. Storage implementation and modeling</h3></summary>
 
-    In Kubernetes, managing storage is crucial for ensuring that applications can read, write, and persist data effectively. This chapter explores different types of storage solutions available in Kubernetes, focusing on how to implement and model them to suit varying application needs.
+In Kubernetes, managing storage is crucial for ensuring that applications can read, write, and persist data effectively. This chapter explores different types of storage solutions available in Kubernetes, focusing on how to implement and model them to suit varying application needs.
     
 ### emptyDir
 
