@@ -3764,6 +3764,8 @@ Since CSI drivers are containerized and managed by vendors, the kubelet must sup
 <details>
 <summary><h3>CH8. Storage implementation and modeling</h3></summary>
 
+    In Kubernetes, managing storage is crucial for ensuring that applications can read, write, and persist data effectively. This chapter explores different types of storage solutions available in Kubernetes, focusing on how to implement and model them to suit varying application needs.
+    
 ### emptyDir
 
 Use PVCs for applications that need persistent storage, while for more complex storage needs, you might use local storage, such as when apps require specific locations or large disks for legacy reasons. An emptyDir volume is versatile and mainly serves as temporary storage when two containers need a shared space. Unlike PersistentVolumes, emptyDir is free, faster as it can use RAM, and more secure since it only exists within the declaring Pod. It is ideal when creating directories like `/tmp` or `/var/log` for logs or temporary files. Additionally, emptyDir volumes are useful for lightweight containers that lack default filesystem paths, especially with scratch images containing only a single executable.
@@ -3772,7 +3774,7 @@ A container may use an emptyDir volume if it lacks default filesystem paths, esp
 
 ### PersistentVolumes
 
-A PersistentVolume (PV) in Kubernetes refers to a storage volume that can be mounted to a Pod. The kubelet manages the mounting of volumes and may use a CSI driver. A PersistentVolumeClaim (PVC) is a named reference to a PV, which ties up the volume if it's of type RWO (read-write-once), preventing other Pods from using it until it's unmounted. 
+A PersistentVolume (PV) in Kubernetes refers to a storage volume that can be mounted to a Pod. The kubelet manages the mounting of volumes and may use a CSI driver. <ins>A PersistentVolumeClaim (PVC) is a named reference to a PV</ins>, which ties up the volume if it's of type RWO (read-write-once), preventing other Pods from using it until it's unmounted. 
 
 Users who want to mount specific types of storage typically run a CSI driver as a DaemonSet in their clusters. These drivers communicate with the kubelet via a socket to perform low-level filesystem mounting. The move to CSI allows vendors to update storage clients frequently without embedding vendor-specific logic in Kubernetes releases.
 
