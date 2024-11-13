@@ -3764,6 +3764,25 @@ Since CSI drivers are containerized and managed by vendors, the kubelet must sup
 <details>
 <summary><h3>CH8. Storage implementation and modeling</h3></summary>
 
+### emptyDir
+
+Use PVCs for applications that need persistent storage, while for more complex storage needs, you might use local storage, such as when apps require specific locations or large disks for legacy reasons. An emptyDir volume is versatile and mainly serves as temporary storage when two containers need a shared space. Unlike PersistentVolumes, emptyDir is free, faster as it can use RAM, and more secure since it only exists within the declaring Pod. It is ideal when creating directories like `/tmp` or `/var/log` for logs or temporary files. Additionally, emptyDir volumes are useful for lightweight containers that lack default filesystem paths, especially with scratch images containing only a single executable.
+
+A container may use an emptyDir volume if it lacks default filesystem paths, especially with scratch images that reduce security but limit storage. Even with `/var/log` available, emptyDir can improve performance by avoiding slow copy-on-write filesystems, which are common in container layers. While emptyDir is useful, Kubernetes storage work often focuses more on PersistentVolumes than ephemeral solutions.
+
+### PersistentVolumes
+
+A PersistentVolume (PV) in Kubernetes refers to a storage volume that can be mounted to a Pod. The kubelet manages the mounting of volumes and may use a CSI driver. A PersistentVolumeClaim (PVC) is a named reference to a PV, which ties up the volume if it's of type RWO (read-write-once), preventing other Pods from using it until it's unmounted. 
+
+Users who want to mount specific types of storage typically run a CSI driver as a DaemonSet in their clusters. These drivers communicate with the kubelet via a socket to perform low-level filesystem mounting. The move to CSI allows vendors to update storage clients frequently without embedding vendor-specific logic in Kubernetes releases.
+
+To apply a StorageClass and PersistentVolumeClaim (PVC) to an existing Pod, follow the [steps](https://github.com/CynicDog/infra-tech-notes/tree/main?tab=readme-ov-file#three-types-of-storage-requirements-for-kubernetes) in chapter 7. 
+
+### HostPath for system control and data access 
+
+HostPath volumes are typically considered an anti-pattern for most application use cases, but they have a critical role in implementing CNI plugins. For example, CNI providers like Calico rely on HostPath for tasks such as manipulating system-level configurations (e.g., XDP and iptables rules) and syncing BGP tables across Linux kernels. This requires mounting host directories like `/run/xtables.lock` or `/opt/cni/bin`, where binaries are installed onto the node by the CNI provider.
+
+Other administrative tools, like Prometheus (for monitoring system resources) and Logstash (for logging), also use HostPath to mount system directories. CNI and CSI providers, including Calico, Antrea, and Flannel, use HostPath to install and manage necessary binaries or utilities.
 
 
 </details>
