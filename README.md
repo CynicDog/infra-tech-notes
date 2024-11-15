@@ -4630,10 +4630,83 @@ Once a host is resolved to an IP:
 The resolv.conf file configures DNS for containers and is the first place to check for DNS setup in Pods. On modern Linux servers, you might use resolvctl, but the principle remains the same. Here's how to check DNS setup inside the bastion Pod:
 ```bash
 / # cat /etc/resolv.conf
-search default.svc.cluster.local svc.cluster.local cluster.local
-nameserver 10.96.0.10
-options ndots:5
+search default.svc.cluster.local svc.cluster.local cluster.local  [1]
+nameserver 10.96.0.10						  [2] 
+options ndots:5 
 ```
+> [1] The search field instructs the search field to "append attributes to the query until a result is returned." 
+>
+> [2] The nameserver field directs the resolver to resolve external DNS names (not in /etc/hosts) by querying the DNS server at `10.96.0.10`, the address of the kube-dns service.
+
+### CoreDNS 
+
+CoreDNS handles resolving hosts from the internet and the internal cluster, which can be observed in its configuration map setup. 
+
+```bash
+root@calico-ingress-control-plane:/# kubectl get configmap coredns -n kube-system -o yaml
+apiVersion: v1
+data:
+  Corefile: |
+    .:53 {
+        errors
+        health {
+           lameduck 5s
+        }
+        ready
+        kubernetes cluster.local in-addr.arpa ip6.arpa {   [1] 
+           pods insecure
+           fallthrough in-addr.arpa ip6.arpa
+           ttl 30
+        }
+        prometheus :9153
+        forward . /etc/resolv.conf {   [2] 
+           max_concurrent 1000
+        }
+        cache 30
+        loop
+        reload
+        loadbalance
+    }
+kind: ConfigMap
+metadata:
+  creationTimestamp: "2024-11-11T04:35:41Z"
+  name: coredns
+  namespace: kube-system
+  resourceVersion: "256"
+  uid: c92e133d-40cc-4f45-9190-35af0d7b14b0
+```
+> [1] configures CoreDNS to handle DNS resolution for Kubernetes service names under the `cluster.local` domain.
+>
+> [2] indicates that CoreDNS will forward DNS queries (that it cannot resolve internally) to external DNS servers defined in `/etc/resolv.conf`. This is how DNS requests for external addresses (like internet domains) are resolved. 
+
+When you’re running CoreDNS in a Kubernetes cluster, CoreDNS itself needs DNS to function (just like any other containerized app), so it might seem like CoreDNS would need to rely on… itself, creating a circular dependency. But that doesn’t happen, because CoreDNS uses a separate DNS configuration.
+
+This is managed by Kubernetes with the `dnsPolicy` field, which you can set for any Pod, including CoreDNS itself. When the `dnsPolicy` for CoreDNS is set to `Default`, it uses the DNS settings of the node it’s running on instead of the cluster’s DNS (CoreDNS) service. This avoids that circular dependency and allows CoreDNS to start up independently.
+
+```bash
+root@calico-ingress-control-plane:/# kubectl get pod coredns-7db6d8ff4d-4w752 -n kube-system -o yaml | grep dnsPolicy
+  dnsPolicy: Default
+```
+
+To sum up, here’s a step-by-step summary of how DNS resolution works for a request from one Pod to another within the same Kubernetes cluster:
+
+1. **Pod Makes a DNS Request**: A Pod initiates a request to another Pod using a DNS name, for example, `web-statefulset-0.web-service`.
+
+2. **resolv.conf Processing**: Inside the Pod, the `resolv.conf` file is used to determine the DNS server to query. For most Pods, this is set to CoreDNS, located at an internal IP (e.g., `10.96.0.10`), as specified by `dnsPolicy: ClusterFirst`.
+
+3. **CoreDNS Receives the Query**: The request goes to CoreDNS, which uses its configuration (from the `coredns` ConfigMap) to process the DNS query. CoreDNS is aware of the cluster's DNS domains (like `cluster.local`), so it knows how to handle requests for internal services.
+
+4. **Kubernetes Plugin Handling**: CoreDNS’s `kubernetes` plugin is configured to manage cluster-internal DNS names. When CoreDNS receives a request for a service like `web-service`, it matches the query against the Kubernetes services and StatefulSets.
+
+5. **Service and Pod IP Resolution**:
+   - For Services: CoreDNS will resolve to a Service's ClusterIP or return the set of endpoints for a headless Service.
+   - For StatefulSet Pods: With headless Services (clusterIP: None), CoreDNS can resolve requests to specific Pod IPs, such as web-statefulset-0.web-service, allowing direct communication with that StatefulSet Pod.
+
+6. **Response Back to the Pod**: CoreDNS sends the resolved IP address back to the requesting Pod.
+
+7. **Network Routing**:
+   - For Service IPs: kube-proxy or a similar component manages routing to one of the Pods in the Service, typically using round-robin or another load-balancing mechanism.
+   - For Direct Pod IPs: In the case of StatefulSets or headless Services, the request goes directly to the specified Pod’s IP, and routing is handled by the cluster’s Container Network Interface (CNI) plugin, such as Calico.
 
 </details>
 
