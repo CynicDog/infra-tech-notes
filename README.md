@@ -4569,12 +4569,21 @@ spec:
       command: ['sleep','10000']
 ```
 
+Pod details are as follows:
+```bash
+root@calico-ingress-control-plane:/# kubectl get pods -o wide
+NAME                              READY   STATUS    RESTARTS   AGE    IP             NODE                    NOMINATED NODE   READINESS GATES
+bastion                           1/1     Running   0          30m    192.168.8.79   calico-ingress-worker   <none>           <none>
+web-deployment-7c769bf8ff-f5lqx   1/1     Running   0          115m   192.168.8.74   calico-ingress-worker   <none>           <none>
+web-deployment-7c769bf8ff-svk45   1/1     Running   0          115m   192.168.8.75   calico-ingress-worker   <none>           <none>
+web-statefulset-0                 1/1     Running   0          115m   192.168.8.76   calico-ingress-worker   <none>           <none>
+web-statefulset-1                 1/1     Running   0          115m   192.168.8.70   calico-ingress-worker   <none>           <none>
+```
+
 Once the bastion Pod is created, enter the pod:
 ```bash
 root@calico-ingress-control-plane:/# kubectl exec -it pod/bastion -- /bin/sh
 ```
-
-Sure! Here's the interpretation mingled with the commands:
 
 Inside the bastion, we can access the service as:
 
@@ -4607,6 +4616,24 @@ So in conclusion, both **Services** and **StatefulSet Pods** are treated as **st
 - **StatefulSet Pods**: Have stable, predictable DNS names based on the StatefulSet's name and replica index (e.g., `web-statefulset-0.web-service`), which makes it easier to access specific Pods directly, even as they scale or restart.
 
 So, while Services route traffic to Pods dynamically, StatefulSet Pods can be accessed directly using their stable DNS names, providing unique identity to each Pod.
+
+### The `resolv.conf` file
+
+Let's examine how DNS requests are resolved by checking the `resolv.conf` file, which will guide us to the CoreDNS service.
+
+Once a host is resolved to an IP:
+
+- If the host is a service, the network proxy ensures the IP routes to a Pod.
+- If the host is a Pod, the CNI provider makes the IP directly routable.
+- If the host is on the internet, outgoing traffic is NAT’d via iptables to ensure the TCP connection returns to the Pod.
+
+The resolv.conf file configures DNS for containers and is the first place to check for DNS setup in Pods. On modern Linux servers, you might use resolvctl, but the principle remains the same. Here's how to check DNS setup inside the bastion Pod:
+```bash
+/ # cat /etc/resolv.conf
+search default.svc.cluster.local svc.cluster.local cluster.local
+nameserver 10.96.0.10
+options ndots:5
+```
 
 </details>
 
