@@ -4380,4 +4380,124 @@ Here are four concise takeaways from the `startContainer` function:
 
 </details>
 
+<details>
+<summary><h3>CH10. DNS in Kubernetes</h3></summary>
+
+### A brief intro to DNS (and CoreDNS) 
+
+A DNS server’s job is to map DNS names (like `www.google.com`) to IP addresses (like `142.250.72.4`). Some common DNS record types we encounter include:
+
+In Kubernetes clusters, DNS is largely managed automatically. However, understanding certain DNS concepts is useful, especially for custom DNS configurations (e.g., headless services). Here are key DNS terms:
+
+- **NXDOMAIN responses**: Returned when no IP address exists for a domain name.
+- **A and AAAA records**: Map a hostname to an IPv4 or IPv6 address (e.g., `google.com` maps to `142.250.72.4`).
+- **CNAME records**: Provide aliases for DNS names (e.g., `www.google.com` maps to `google.com`).
+
+In custom setups, CNAMEs support backward compatibility for APIs and applications. Below is an example showing how A and CNAME records are used in _zone files_, which list DNS records in a CSV-like format:
+
+```
+my.very.old.website.   CNAME  my.new.site.
+my.old.website.        CNAME  my.new.site.
+my.new.site.           A      192.168.10.123
+```
+
+Before Kubernetes, various DNS server implementations were available:
+
+- **Recursive DNS servers**: These resolve most internet addresses by starting at the root (e.g., `.edu`, `.com`) and working down. An example is BIND, widely used in Linux data centers.
+- **Cloud-based DNS**: Services like AWS Route53 are hosted in the cloud and managed externally.
+
+In most Kubernetes setups, <ins>**CoreDNS**</ins> provides in-cluster DNS for Pods. Kubernetes Conformance tests verify that specific DNS features are present, including:
+
+- `/etc/hosts` entries in Pods, allowing automatic access to the API server via `kubernetes.default`.
+- Pods capable of adding custom DNS records.
+- Resolution of arbitrary and headless services to A records by Pods.
+- DNS records unique to each Pod.
+
+CoreDNS is commonly used in Kubernetes clusters due to its strong, built-in support for Kubernetes. It offers several key features:
+
+- Connects to the Kubernetes API server to pull IP addresses for Pods and Services as needed.
+- Resolves DNS records to service IPs for in-cluster services.
+- Caches DNS entries, optimizing performance in large clusters where many Pods frequently resolve Services.
+- Allows adding new features at compile time.
+- Scales horizontally and maintains low latency, even under high load.
+- Forwards requests for external addresses to upstream resolvers using the forward plugin.
+
+### Pods need interanl DNS 
+
+In a microservices environment, Pods are typically accessed through services, and because Pods frequently come and go (with changing IPs), DNS is the primary means for services to connect. This approach applies to both cloud and internet environments, where direct IP addresses are rarely used to locate specific servers or databases anymore. 
+
+Let's explore how Pods can communicate via DNS within a cluster by starting a multi-container service and testing its connectivity.
+
+<details><summary>The specification for <code>my-app</code> nginx resources is as follow:</summary>
+<br>
+
+```yaml 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+      - name: web-server
+        image: nginx
+        ports:
+        - containerPort: 80
+          name: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-service
+  labels:
+    app: my-app
+spec:
+  ports:
+  - port: 80
+    name: http
+  clusterIP: None
+  selector:
+    app: my-app
+```
+</details>
+
+<details><summary>The details for <code>web-statefulset</code> StatefulSet read as below:</summary>
+<br>
+
+```yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: web-statefulset
+spec:
+  serviceName: "web-service"
+  replicas: 2
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+      - name: web-server
+        image: nginx
+        ports:
+        - containerPort: 80
+          name: http
+```
+
+</details> 
+
+</details>
+
 </details> 
