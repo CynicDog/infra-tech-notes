@@ -4688,7 +4688,9 @@ root@calico-ingress-control-plane:/# kubectl get pod coredns-7db6d8ff4d-4w752 -n
   dnsPolicy: Default
 ```
 
-To sum up, here’s a step-by-step summary of how DNS resolution works for a request from one Pod to another within the same Kubernetes cluster:
+### CoreDNS in Action 
+
+To sum up what we've been covering so far, here’s a step-by-step summary of how DNS resolution works for a request from one Pod to another within the same Kubernetes cluster:
 
 1. **Pod Makes a DNS Request**: A Pod initiates a request to another Pod using a DNS name, for example, `web-statefulset-0.web-service`.
 
