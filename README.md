@@ -4428,7 +4428,7 @@ In a microservices environment, Pods are typically accessed through services, an
 
 Let's explore how Pods can communicate via DNS within a cluster by starting a multi-container service and testing its connectivity.
 
-<details><summary>The specification for <code>my-app</code> nginx resources is as follow:</summary>
+<details><summary>The specification for <code>my-app</code> nginx resources(<code>my-app.yml</code>) is as follow:</summary>
 <br>
 
 ```yaml 
@@ -4463,13 +4463,15 @@ spec:
   ports:
   - port: 80
     name: http
-  clusterIP: None
+  clusterIP: None  [1]
   selector:
     app: my-app
 ```
+> [1] We typically deploy applications with a StatefulSet using a headless service. 
+ 
 </details>
 
-<details><summary>The details for <code>web-statefulset</code> StatefulSet read as below:</summary>
+<details><summary>The details for <code>web-statefulset</code> StatefulSet(<code>my-app-ss.yml</code>) read as below:</summary>
 <br>
 
 ```yaml
@@ -4495,8 +4497,116 @@ spec:
         - containerPort: 80
           name: http
 ```
-
 </details> 
+
+StatefulSets have unique DNS properties, making them ideal for exploring Kubernetes’ handling of high-availability processes with stable DNS endpoints. StatefulSets are essential for applications that require fixed identities. 
+
+StatefulSets are used in Kubernetes for scenarios where the basic microservices model doesn't suffice, often involving external systems that affect deployment. They're typically unnecessary for stateless apps unless specific performance needs arise. Unlike simple Deployments, StatefulSets are more complex to manage, especially when scaling and maintaining state across Pod restarts.
+
+### DNS with headless services 
+
+When deploying an application with a StatefulSet, we often use a headless service. A headless service lacks a ClusterIP and instead returns an A record directly from the DNS server, which has significant implications for DNS behavior.
+
+A headless service is used because many applications rely on direct Pod-to-Pod communication over IPs (IP-to-IP) to establish quorums and handle network-specific behavior, rather than depending on the kube-proxy for load-balanced connections.
+
+To test the functionality of a headless service and understand how it interacts with DNS in Kubernetes, you can follow below steps. 
+
+#### Create a Headless Service and StatefulSet 
+```bash
+kubectl apply -f my-app.yml
+kubectl apply -f my-app-ss.yml 
+```
+
+#### Test DNS Resolution
+In a Kubernetes cluster, the DNS names for each Pod in a StatefulSet follow this format: `<statefulset-name>-<ordinal>.<service-name>`. 
+
+For example, for a StatefulSet named `web-statefulset` and a service `web-service`, the DNS names for Pods would be:
+
+- `web-statefulset-0.web-service`
+- `web-statefulset-1.web-service`
+- `web-statefulset-2.web-service` ...
+  
+You can test this by entering one of the Pods:
+```bash
+kubectl exec -it pod/web-statefulset-0 -- /bin/sh
+```
+
+Inside the Pod, try to resolve the DNS for another Pod. 
+```bash
+root@web-statefulset-0:/# apt-get update && apt-get install dnsutils iputils-ping -y
+root@web-statefulset-0:/# nslookup web-statefulset-1.web-service
+;; Got recursion not available from 10.96.0.10
+Server:         10.96.0.10
+Address:        10.96.0.10#53
+
+Name:   web-statefulset-1.web-service.default.svc.cluster.local
+Address: 192.168.8.70
+```
+
+You should see that the DNS resolves to the IP of the specific Pod(`192.168.8.70`), not the service.
+
+You can also test communication between Pods using their DNS names. 
+```
+root@web-statefulset-0:/# ping web-statefulset-1.web-service
+PING web-statefulset-1.web-service.default.svc.cluster.local (192.168.8.70) 56(84) bytes of data.
+64 bytes from web-statefulset-1.web-service.default.svc.cluster.local (192.168.8.70): icmp_seq=1 ttl=63 time=0.224 ms
+64 bytes from web-statefulset-1.web-service.default.svc.cluster.local (192.168.8.70): icmp_seq=2 ttl=63 time=0.092 ms
+64 bytes from web-statefulset-1.web-service.default.svc.cluster.local (192.168.8.70): icmp_seq=3 ttl=63 time=0.108 ms
+```
+
+### Exploring Pod DNS properties 
+
+Let's test DNS for these Pods by checking their service endpoints inside the cluster, avoiding the need to expose or forward ports. First, create a bastion Pod to use wget against the apps we've set up, where the `bastion.yml` configuration file reads as: 
+```yaml 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bastion
+spec:
+  containers:
+    - name: bastion
+      image: docker.io/busybox
+      command: ['sleep','10000']
+```
+
+Once the bastion Pod is created, enter the pod:
+```bash
+root@calico-ingress-control-plane:/# kubectl exec -it pod/bastion -- /bin/sh
+```
+
+Sure! Here's the interpretation mingled with the commands:
+
+Inside the bastion, we can access the service as:
+
+```bash
+/ # wget web-service:80
+Connecting to web-service:80 (192.168.8.75:80)
+```
+> This is resolved to the IP of one of the Pods that the headless service is routing traffic to (in this case, `192.168.8.75`). The headless service allows Kubernetes to resolve the DNS to the individual Pods directly.
+
+Next, we access the StatefulSet Pod directly:
+
+```bash
+/ # wget web-statefulset-0.web-service
+Connecting to web-statefulset-0.web-service (192.168.8.76:80)
+```
+> This resolves directly to the IP of the first replica of the StatefulSet (`192.168.8.76`). The DNS name for StatefulSet Pods is stable, allowing direct access to the individual Pods within the StatefulSet, which is what makes them different from regular Deployments.
+
+Finally, when trying to access a Pod from a Deployment:
+
+```bash
+/ # wget web-deployment-7c769bf8ff-f5lqx
+wget: bad address 'web-deployment-7c769bf8ff-f5lqx'
+```
+> This fails because Deployment Pods don’t have stable DNS names. Pods created by Deployments are dynamic and don’t have the persistent DNS entries that StatefulSet Pods do. 
+
+So in conclusion, both **Services** and **StatefulSet Pods** are treated as **stable DNS endpoints**. This means:
+
+- **Services**: Provide a consistent DNS name that can be used to reach the group of Pods they route traffic to, even if the Pods themselves are ephemeral or have dynamic IPs.
+  
+- **StatefulSet Pods**: Have stable, predictable DNS names based on the StatefulSet's name and replica index (e.g., `web-statefulset-0.web-service`), which makes it easier to access specific Pods directly, even as they scale or restart.
+
+So, while Services route traffic to Pods dynamically, StatefulSet Pods can be accessed directly using their stable DNS names, providing unique identity to each Pod.
 
 </details>
 
