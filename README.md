@@ -4634,7 +4634,7 @@ search default.svc.cluster.local svc.cluster.local cluster.local  [1]
 nameserver 10.96.0.10						  [2] 
 options ndots:5 
 ```
-> [1] The search field instructs the search field to "append attributes to the query until a result is returned." 
+> [1] The search field specifies domains to append to the query, attempting each in sequence until a result is returned.
 >
 > [2] The nameserver field directs the resolver to resolve external DNS names (not in /etc/hosts) by querying the DNS server at `10.96.0.10`, the address of the CoreDNS service.
 
