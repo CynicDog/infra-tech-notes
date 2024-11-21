@@ -3,7 +3,7 @@
 A collection of notes on infrastructure essentials like Linux, Kubernetes, containerization, and networking. 
 
 <details>
-<summary><h2>Linux in Action</h2></summary>
+<summary><h2>🐧 Linux in Action</h2></summary>
 
 <details>
 <summary><h3>CH1. Welcome to Linux</h3></summary>
@@ -1044,7 +1044,7 @@ Browsers authenticate your site's security and exchange encrypted data during a 
 </details>
 
 <details>
-<summary><h2>Kubernetes for Developers</h2></summary>
+<summary><h2>⚓ Kubernetes for Developers</h2></summary>
 <details>
 <summary><h3>CH3. Deploying to Kubernetes</h3></summary>
 
@@ -1066,7 +1066,7 @@ A **Deployment** is a specification for the desired state of the system, which K
 </details>
 
 <details>
-<summary><h2>Core Kubernetes</h2></summary>
+<summary><h2>⚓ Core Kubernetes</h2></summary>
 
 <details>
 <summary><h3>CH1. Why Kubernetes exists</h3></summary>
@@ -4710,6 +4710,155 @@ To sum up what we've been covering so far, here’s a step-by-step summary of ho
    - For Service IPs: kube-proxy or a similar component manages routing to one of the Pods in the Service, typically using round-robin or another load-balancing mechanism.
    - For Direct Pod IPs: In the case of StatefulSets or headless Services, the request goes directly to the specified Pod’s IP, and routing is handled by the cluster’s Container Network Interface (CNI) plugin, such as Calico.
 
+</details>
+
+<details><summary><h3>CH11 The core of the control plane</h3></summary>
+
+We covered Pods, their role in Kubernetes, and their need in web apps. Now, let's explore the control plane, usually housed in the `kube-system` namespace, where operators install minimal components.
+
+### Investigating the control plane
+
+Let's explore the control plane we've been playing with, a kind control plane by running the following command: 
+
+```bash
+root@calico-ingress-control-plane:/# kubectl get pods -n kube-system
+NAME                                                   READY   STATUS    RESTARTS       AGE
+calico-kube-controllers-65dcc554ff-5d9jb               1/1     Running   7 (33m ago)    9d
+calico-node-2t6ms                                      1/1     Running   10 (33m ago)   9d
+calico-node-zzq5d                                      1/1     Running   9 (33m ago)    9d
+coredns-7d9974599f-l2zpr                               1/1     Running   2 (33m ago)    5d18h
+coredns-7d9974599f-zhrzw                               1/1     Running   2 (33m ago)    5d18h
+etcd-calico-ingress-control-plane                      1/1     Running   0              33m
+kube-apiserver-calico-ingress-control-plane            1/1     Running   0              33m
+kube-controller-manager-calico-ingress-control-plane   1/1     Running   7 (33m ago)    9d
+kube-proxy-7h8m2                                       1/1     Running   7 (33m ago)    9d
+kube-proxy-dlzq4                                       1/1     Running   7 (33m ago)    9d
+kube-scheduler-calico-ingress-control-plane            1/1     Running   7 (33m ago)    9d
+```
+> Notice that the kind cluster doesn’t run kubelet as a Pod. In setups like kind, it runs as a binary, though some systems such as managed Kubernetes services (e.g., AWS EKS or Google GKE) run kubelet in a container.
+
+Let’s explore the API server, a critical control plane component and RESTful web server. Key aspects include API objects and custom API objects.
+
+Kubernetes is an open platform with open APIs, enabling innovation and creativity. Below are API resources in a Kubernetes cluster. 
+
+<details><summary><code>kubectl api-resources -o name</code></summary>
+<br> 
+
+```txt
+bindings
+componentstatuses
+configmaps
+endpoints
+events
+limitranges
+namespaces
+nodes
+persistentvolumeclaims
+persistentvolumes
+pods
+podtemplates
+replicationcontrollers
+resourcequotas
+secrets
+serviceaccounts
+services
+mutatingwebhookconfigurations.admissionregistration.k8s.io
+validatingadmissionpolicies.admissionregistration.k8s.io
+validatingadmissionpolicybindings.admissionregistration.k8s.io
+validatingwebhookconfigurations.admissionregistration.k8s.io
+customresourcedefinitions.apiextensions.k8s.io
+apiservices.apiregistration.k8s.io
+controllerrevisions.apps
+daemonsets.apps
+deployments.apps
+replicasets.apps
+statefulsets.apps
+selfsubjectreviews.authentication.k8s.io
+tokenreviews.authentication.k8s.io
+localsubjectaccessreviews.authorization.k8s.io
+selfsubjectaccessreviews.authorization.k8s.io
+selfsubjectrulesreviews.authorization.k8s.io
+subjectaccessreviews.authorization.k8s.io
+horizontalpodautoscalers.autoscaling
+cronjobs.batch
+jobs.batch
+certificatesigningrequests.certificates.k8s.io
+leases.coordination.k8s.io
+bgpconfigurations.crd.projectcalico.org
+bgpfilters.crd.projectcalico.org
+bgppeers.crd.projectcalico.org
+blockaffinities.crd.projectcalico.org
+caliconodestatuses.crd.projectcalico.org
+clusterinformations.crd.projectcalico.org
+felixconfigurations.crd.projectcalico.org
+globalnetworkpolicies.crd.projectcalico.org
+globalnetworksets.crd.projectcalico.org
+hostendpoints.crd.projectcalico.org
+ipamblocks.crd.projectcalico.org
+ipamconfigs.crd.projectcalico.org
+ipamhandles.crd.projectcalico.org
+ippools.crd.projectcalico.org
+ipreservations.crd.projectcalico.org
+kubecontrollersconfigurations.crd.projectcalico.org
+networkpolicies.crd.projectcalico.org
+networksets.crd.projectcalico.org
+endpointslices.discovery.k8s.io
+events.events.k8s.io
+flowschemas.flowcontrol.apiserver.k8s.io
+prioritylevelconfigurations.flowcontrol.apiserver.k8s.io
+ingressclasses.networking.k8s.io
+ingresses.networking.k8s.io
+networkpolicies.networking.k8s.io
+runtimeclasses.node.k8s.io
+poddisruptionbudgets.policy
+contourconfigurations.projectcontour.io
+contourdeployments.projectcontour.io
+extensionservices.projectcontour.io
+httpproxies.projectcontour.io
+tlscertificatedelegations.projectcontour.io
+clusterrolebindings.rbac.authorization.k8s.io
+clusterroles.rbac.authorization.k8s.io
+rolebindings.rbac.authorization.k8s.io
+roles.rbac.authorization.k8s.io
+priorityclasses.scheduling.k8s.io
+csidrivers.storage.k8s.io
+csinodes.storage.k8s.io
+csistoragecapacities.storage.k8s.io
+storageclasses.storage.k8s.io
+volumeattachments.storage.k8s.io
+```
+</details>
+
+API objects have three levels: alpha, beta, and GA (general availability). 
+
+- **Alpha**: Unstable, experimental, and unsuitable for production due to upgrade issues.  
+- **Beta**: Stable and production-ready, with guaranteed support (e.g., DaemonSets were beta for years but widely used in production).  
+- **GA**: Fully stable.  
+
+The `v1` prefix in API paths (e.g., `/apis/autoscaling/v1`) indicates the version. 
+
+### Custom Resource Definitions (CRDs)
+
+To understand how API objects are created and used, let’s define a `ClusterRoleBinding` and deploy a `cockroach` database operator. Here's the `ClusterRoleBinding` specification:
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cockroach-operator-default
+  labels:
+    app: cockroach-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cockroach-operator-role
+subjects:
+  - name: cockroach-operator-default
+    namespace: default
+    kind: ServiceAccount
+```
+
+ 
 </details>
 
 </details> 
