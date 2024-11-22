@@ -4712,7 +4712,7 @@ To sum up what we've been covering so far, here’s a step-by-step summary of ho
 
 </details>
 
-<details><summary><h3>CH11 The core of the control plane</h3></summary>
+<details><summary><h3>CH11. The core of the control plane</h3></summary>
 
 We covered Pods, their role in Kubernetes, and their need in web apps. Now, let's explore the control plane, usually housed in the `kube-system` namespace, where operators install minimal components.
 
@@ -4837,26 +4837,106 @@ API objects have three levels: alpha, beta, and GA (general availability).
 
 The `v1` prefix in API paths (e.g., `/apis/autoscaling/v1`) indicates the version. 
 
-### Custom Resource Definitions (CRDs)
+### Custom Resource Definitions (CRDs) and Operators 
 
-To understand how API objects are created and used, let’s define a `ClusterRoleBinding` and deploy a `cockroach` database operator. Here's the `ClusterRoleBinding` specification:
+The control plane integrates CRDs into the Kubernetes API, enabling the creation of custom resources. Controllers or operators then monitor and manage these resources to maintain their desired state.
 
-```yaml
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: cockroach-operator-default
-  labels:
-    app: cockroach-operator
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: cockroach-operator-role
-subjects:
-  - name: cockroach-operator-default
-    namespace: default
-    kind: ServiceAccount
+Here are key contrasts between controllers and operators:  
+
+1. **Scope**: Controllers manage built-in Kubernetes resources like Pods and Deployments, while Operators handle domain-specific applications through custom resources.  
+2. **Complexity**: Operators implement advanced, application-specific logic, while controllers focus on basic reconciliation tasks.  
+3. **Resource Management**: Controllers manage cluster-level resources, whereas Operators oversee the full lifecycle of specific applications.  
+4. **Extension**: Operators use CRDs to extend Kubernetes functionality, while controllers operate within the core resource set.
+
+Custom Resource Definitions (CRDs) extend Kubernetes' API by allowing users to define custom resource types, enabling the management of domain-specific objects. Kubernetes operators use these custom resources to automate tasks. An operator watches for changes in CRDs and their instances, executing domain-specific logic to manage the application's lifecycle, ensuring tasks like deployment, scaling, or configuration adjustments are handled automatically.
+
+<details><summary><h4>Postgres Operator in kind Quickstart</h4></summary>
+
+#### Set Up a Kubernetes Cluster with Kind
+```bash
+PS C:\Users> kind create cluster --name=postgre
+PS C:\Users> docker exec -it postgre-control-plane /bin/bash
 ```
+
+#### Apply Required PostgreSQL Operator Manifests
+```bash
+root@postgre-control-plane:/# kubectl create -f https://raw.githubusercontent.com/zalando/postgres-operator/refs/heads/master/manifests/configmap.yaml    
+root@postgre-control-plane:/# kubectl create -f https://raw.githubusercontent.com/zalando/postgres-operator/refs/heads/master/manifests/operator-service-account-rbac.yaml 
+root@postgre-control-plane:/# kubectl create -f https://raw.githubusercontent.com/zalando/postgres-operator/refs/heads/master/manifests/postgres-operator.yaml
+```
+
+#### Deploy a PostgreSQL Cluster (a logical group of PostgreSQL database instances)
+```bash
+root@postgre-control-plane:/# kubectl create -f https://raw.githubusercontent.com/zalando/postgres-operator/refs/heads/master/manifests/minimal-postgres-manifest.yaml
+```
+
+The details of the deployment of postgresql operator read as below.  
+ 
+<details><summary><code>root@postgre-control-plane:/# kubectl get all -A</code></summary>
+<br>
+
+```bash
+NAMESPACE            NAME                                                READY   STATUS    RESTARTS        AGE
+default              pod/acid-minimal-cluster-0                          1/1     Running   0               4m41s
+default              pod/acid-minimal-cluster-1                          1/1     Running   0               4m7s
+default              pod/postgres-operator-5bcb7b8d94-gtw2w              1/1     Running   1 (9m18s ago)   9m23s
+kube-system          pod/coredns-7db6d8ff4d-9bn2t                        1/1     Running   0               19m
+kube-system          pod/coredns-7db6d8ff4d-tjdp2                        1/1     Running   0               19m
+kube-system          pod/etcd-postgre-control-plane                      1/1     Running   0               19m
+kube-system          pod/kindnet-4l9l6                                   1/1     Running   0               19m
+kube-system          pod/kube-apiserver-postgre-control-plane            1/1     Running   0               19m
+kube-system          pod/kube-controller-manager-postgre-control-plane   1/1     Running   0               19m
+kube-system          pod/kube-proxy-9pc4t                                1/1     Running   0               19m
+kube-system          pod/kube-scheduler-postgre-control-plane            1/1     Running   0               19m
+local-path-storage   pod/local-path-provisioner-988d74bc-z56zw           1/1     Running   0               19m
+
+NAMESPACE     NAME                                  TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)                  AGE
+default       service/acid-minimal-cluster          ClusterIP   10.96.181.217   <none>        5432/TCP                 4m41s
+default       service/acid-minimal-cluster-config   ClusterIP   None            <none>        <none>                   4m5s
+default       service/acid-minimal-cluster-repl     ClusterIP   10.96.248.76    <none>        5432/TCP                 4m41s
+default       service/kubernetes                    ClusterIP   10.96.0.1       <none>        443/TCP                  19m
+kube-system   service/kube-dns                      ClusterIP   10.96.0.10      <none>        53/UDP,53/TCP,9153/TCP   19m
+
+NAMESPACE     NAME                        DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR            AGE
+kube-system   daemonset.apps/kindnet      1         1         1       1            1           kubernetes.io/os=linux   19m
+kube-system   daemonset.apps/kube-proxy   1         1         1       1            1           kubernetes.io/os=linux   19m
+
+NAMESPACE            NAME                                     READY   UP-TO-DATE   AVAILABLE   AGE
+default              deployment.apps/postgres-operator        1/1     1            1           9m23s		[1] 
+kube-system          deployment.apps/coredns                  2/2     2            2           19m
+local-path-storage   deployment.apps/local-path-provisioner   1/1     1            1           19m
+
+NAMESPACE            NAME                                              DESIRED   CURRENT   READY   AGE
+default              replicaset.apps/postgres-operator-5bcb7b8d94      1         1         1       9m23s
+kube-system          replicaset.apps/coredns-7db6d8ff4d                2         2         2       19m
+local-path-storage   replicaset.apps/local-path-provisioner-988d74bc   1         1         1       19m
+
+NAMESPACE   NAME                                    READY   AGE
+default     statefulset.apps/acid-minimal-cluster   2/2     4m41s
+
+NAMESPACE   NAME                                            TEAM   VERSION   PODS   VOLUME   CPU-REQUEST   MEMORY-REQUEST   AGE     STATUS
+default     postgresql.acid.zalan.do/acid-minimal-cluster   acid   16        2      1Gi                                     4m41s   Running
+```
+> [1] The `postgres-operator` automates the deployment, scaling, backup, failover, and maintenance of PostgreSQL clusters within Kubernetes.
+
+</details>
+
+#### Connect to the Postgres cluster via psql 
+
+Use port-forward on the master pod to connect to the PostgreSQL database from your machine, filtering with labels to identify the master pod.
+```bash
+root@postgre-control-plane:/# export PGMASTER=$(kubectl get pods -o jsonpath={.items..metadata.name} -l application=spilo,cluster-name=acid-minimal-cluster,spilo-role=master -n default)
+root@postgre-control-plane:/# kubectl port-forward $PGMASTER 6432:5432 -n default
+```
+
+Open another CLI, connect using `psql`, and retrieve the password for `foo_user` from the Kubernetes secret. Set SSL mode to "require" as non-encrypted connections are rejected.
+```bash
+export PGPASSWORD=$(kubectl get secret postgres.acid-minimal-cluster.credentials.postgresql.acid.zalan.do -o 'jsonpath={.data.password}' | base64 -d)
+export PGSSLMODE=require
+psql -U postgres -h localhost -p 6432
+```
+
+</details>
 
  
 </details>
