@@ -4925,15 +4925,15 @@ default     postgresql.acid.zalan.do/acid-minimal-cluster   acid   16        2  
 
 Use port-forward on the master pod to connect to the PostgreSQL database from your machine, filtering with labels to identify the master pod.
 ```bash
-root@postgre-control-plane:/# export PGMASTER=$(kubectl get pods -o jsonpath={.items..metadata.name} -l application=spilo,cluster-name=acid-minimal-cluster,spilo-role=master -n default)
-root@postgre-control-plane:/# kubectl port-forward $PGMASTER 6432:5432 -n default
+PS C:\Users> export PGMASTER=$(kubectl get pods -o jsonpath={.items..metadata.name} -l application=spilo,cluster-name=acid-minimal-cluster,spilo-role=master -n default)
+PS C:\Users> kubectl port-forward $PGMASTER 6432:5432 -n default
 ```
 
 Open another CLI, connect using `psql`, and retrieve the password for `foo_user` from the Kubernetes secret. Set SSL mode to "require" as non-encrypted connections are rejected.
 ```bash
-export PGPASSWORD=$(kubectl get secret postgres.acid-minimal-cluster.credentials.postgresql.acid.zalan.do -o 'jsonpath={.data.password}' | base64 -d)
-export PGSSLMODE=require
-psql -U postgres -h localhost -p 6432
+PS C:\Users> export PGPASSWORD=$(kubectl get secret postgres.acid-minimal-cluster.credentials.postgresql.acid.zalan.do -o 'jsonpath={.data.password}' | base64 -d)
+PS C:\Users> export PGSSLMODE=require
+PS C:\Users> psql -U postgres -h localhost -p 6432
 ```
 
 </details>
