@@ -4938,7 +4938,82 @@ PS C:\Users> psql -U postgres -h localhost -p 6432
 
 </details>
 
- 
+### Scheduler Details 
+
+The Kubernetes scheduler uses a scheduling framework introduced in v1.15. It organizes tasks into two main cycles: the **scheduling cycle**, which determines the best node for a Pod, and the **binding cycle**, which handles the actual assignment. Pods needing resources like volumes may face delays if resource creation fails, leading to rescheduling. Custom schedulers can run as separate Pods but may suffer performance issues. Since v1.23, the scheduler allows plugins to be enabled via multipoint, streamlining extensibility while retaining core functionality.
+
+The code snippet below defines the various set of plugins that are registered inside a running scheduling instance. Refer to [types.go](https://github.com/kubernetes/kubernetes/blob/master/pkg/scheduler/apis/config/types.go) for complete details.  
+
+<details><summary><code>types.go.Plugins</code></summary>
+<br>
+
+```go
+// Plugins include multiple extension points. When specified, the list of plugins for
+// a particular extension point are the only ones enabled. If an extension point is
+// omitted from the config, then the default set of plugins is used for that extension point.
+// Enabled plugins are called in the order specified here, after default plugins. If they need to
+// be invoked before default plugins, default plugins must be disabled and re-enabled here in desired order.
+type Plugins struct {
+	// PreEnqueue is a list of plugins that should be invoked before adding pods to the scheduling queue.
+	PreEnqueue PluginSet
+
+	// QueueSort is a list of plugins that should be invoked when sorting pods in the scheduling queue.
+	QueueSort PluginSet
+
+	// PreFilter is a list of plugins that should be invoked at "PreFilter" extension point of the scheduling framework.
+	PreFilter PluginSet
+
+	// Filter is a list of plugins that should be invoked when filtering out nodes that cannot run the Pod.
+	Filter PluginSet
+
+	// PostFilter is a list of plugins that are invoked after filtering phase, but only when no feasible nodes were found for the pod.
+	PostFilter PluginSet
+
+	// PreScore is a list of plugins that are invoked before scoring.
+	PreScore PluginSet
+
+	// Score is a list of plugins that should be invoked when ranking nodes that have passed the filtering phase.
+	Score PluginSet
+
+	// Reserve is a list of plugins invoked when reserving/unreserving resources
+	// after a node is assigned to run the pod.
+	Reserve PluginSet
+
+	// Permit is a list of plugins that control binding of a Pod. These plugins can prevent or delay binding of a Pod.
+	Permit PluginSet
+
+	// PreBind is a list of plugins that should be invoked before a pod is bound.
+	PreBind PluginSet
+
+	// Bind is a list of plugins that should be invoked at "Bind" extension point of the scheduling framework.
+	// The scheduler call these plugins in order. Scheduler skips the rest of these plugins as soon as one returns success.
+	Bind PluginSet
+
+	// PostBind is a list of plugins that should be invoked after a pod is successfully bound.
+	PostBind PluginSet
+
+	// MultiPoint is a simplified config field for enabling plugins for all valid extension points
+	MultiPoint PluginSet
+}
+```
+</details>
+
+The `Plugins` struct defines extension points in the Kubernetes scheduler, enabling plugins to control each phase of the scheduling lifecycle. Pods are processed through steps like `QueueSort` to prioritize, `PreFilter` and `Filter` to determine node feasibility, and `PostFilter` for fallback strategies when no nodes qualify. Scoring phases (`PreScore` and `Score`) rank nodes, while `Reserve` and `PreBind` ensure resources and conditions are prepared before the `Bind` phase assigns the Pod to a node. `PostBind` handles post-scheduling tasks, and `MultiPoint` allows plugins to act across multiple phases efficiently.
+
+### The Controller Manager 
+
+The Kubernetes Controller Manager (KCM) has shifted some functionality to the Cloud Controller Manager (CCM), which includes four components, either controllers or control loops, for cloud-specific tasks. Storage management has evolved, and while KCM still manages storage, the CCM handles cloud-based storage functionalities.
+
+The Node controller tracks node status, and the Replication controller ensures the correct number of Pods, though the latter is mostly replaced by Deployments with ReplicaSets. 
+
+When a Namespace is created, a default ServiceAccount and API token are generated, which Pods use by default for API server access unless specified otherwise.
+
+### Kubernetes Cloud Controller Managers (CCMs) 
+
+Kubernetes Cloud Controller Managers (CCMs) interact with cloud APIs to manage nodes, routing, and external load balancers. Each cloud provider requires a specific controller, but the cloud controller interface defines a common integration standard.
+
+A CCM typically implements three control loops (controllers) as a single binary. The Node controller links cloud node data with the Kubernetes API, ensuring accurate node deployment and deletion. The Route controller manages traffic routing between nodes in cloud environments, while the Service controller creates LoadBalancer services (not ClusterIP services). 
+
 </details>
 
 </details> 
