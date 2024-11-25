@@ -4940,7 +4940,7 @@ PS C:\Users> psql -U postgres -h localhost -p 6432
 
 ### Scheduler Details 
 
-The Kubernetes scheduler uses a scheduling framework introduced in v1.15. It organizes tasks into two main cycles: the **scheduling cycle**, which determines the best node for a Pod, and the **binding cycle**, which handles the actual assignment. Pods needing resources like volumes may face delays if resource creation fails, leading to rescheduling. Custom schedulers can run as separate Pods but may suffer performance issues. Since v1.23, the scheduler allows plugins to be enabled via multipoint, streamlining extensibility while retaining core functionality.
+The Kubernetes scheduler uses a scheduling framework introduced in v1.15. It organizes tasks into two main cycles: the <ins>**scheduling cycle**</ins>, which determines the best node for a Pod, and the <ins>**binding cycle**</ins>, which handles the actual assignment. Pods needing resources like volumes may face delays if resource creation fails, leading to rescheduling. Custom schedulers can run as separate Pods but may suffer performance issues. Since v1.23, the scheduler allows plugins to be enabled via multipoint, streamlining extensibility while retaining core functionality.
 
 The code snippet below defines the various set of plugins that are registered inside a running scheduling instance. Refer to [types.go](https://github.com/kubernetes/kubernetes/blob/master/pkg/scheduler/apis/config/types.go) for complete details.  
 
