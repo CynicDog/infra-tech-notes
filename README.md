@@ -5016,4 +5016,33 @@ A CCM typically implements three control loops (controllers) as a single binary.
 
 </details>
 
+<details><summary><h3>CH12. Etcd and the Control Plane</h3></summary>
+
+A Kubernetes cluster includes the kubelet, scheduler, controller managers, and API server. They communicate by updating the API server, ensuring decoupling between components. For example, the scheduler assigns Pods to nodes by modifying their API server definitions, while the kubelet reports events to the API server. This design keeps Kubernetes' state consistent and components independent.
+
+When nodes, controllers, or API servers fail, Kubernetes reconciles applications by rescheduling containers and rebinding volumes. All state changes made through the Kubernetes API are stored in <ins>**etcd**</ins>.
+
+Understanding etcd in Kubernetes requires some practical knowledge before diving into distributed consensus and disaster recovery. Key points include:
+
+- Losing etcd data can severely impact the cluster, so always back it up.
+- For production, ensure fast disk access (solid-state disks) and a high-performance network. A single slow write can impact large clusters, with requirements around 10 GB network and SSDs. Etcd typically needs 50 sequential IOPS (e.g., 7200 RPM disk).
+- Use redundant etcd nodes (at least three) for reliability in case of node failures.
+- Understand how etcd’s Raft consensus, disk I/O, and resource usage (CPU, memory) affect performance.
+- Store cluster events in a separate etcd endpoint to avoid competing with core data.
+- Use `etcdctl check perf` to quickly verify performance.
+- For recovery, refer to the [etcd snapshot recovery guide](http://mng.bz/6Ze5).
+
+### When to Tune etcd
+
+You may need to tune etcd in production depending on your setup. For example, Kubernetes providers like GKE manage etcd for you, but with custom installations, you’ll need to manage it yourself. Two cases where tuning might be needed are nested virtualization and kubeadm-based installations.
+
+- Nested Virtualization: Common in test environments, this setup (like running VMs within VMs) adds significant performance overhead, especially on disk I/O. This latency can make etcd unreliable, causing write failures, leader loss, and issues with Kubernetes APIs that depend on leases.
+
+- kubeadm: While kubeadm is a common Kubernetes installer, it doesn’t come with a complete etcd solution. For production, you’ll need to set up a dedicated etcd cluster with a proper disk setup, as the default configuration may not meet scalability needs.
+
+### etcd Pod in Kind
+
+
+</details>
+
 </details> 
