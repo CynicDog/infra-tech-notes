@@ -5091,7 +5091,7 @@ Software Defined Networking (SDN) is a network architecture that separates the *
 **Applications:**  
 SDN is utilized in various domains, including data centers, backbone networks, enterprise networks, internet exchange points, and home networks.  
 
-<details><summary>Quiz</summary>
+<details><summary><h3>Quiz</h3></summary>
 
 #### Q. Which of the following are true about Classless Interdomain Routing (CIDR)?
 
