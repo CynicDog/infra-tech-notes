@@ -5046,7 +5046,7 @@ You may need to tune etcd in production depending on your setup. For example, Ku
 
 </details> 
 
-<details><summary><h2>🛠️ Software Defined Networking - The University of Chicago (Coursera)</h2></summary>
+<details><summary><h2>🛠️ Software Defined Networking (Coursera)</h2></summary>
 
 <details><summary><h3>Module 1 - History and Evolution of Software Defined Networking</h3></summary>
 
