@@ -5099,7 +5099,8 @@ A. CIDR slowed the rate of Internet routing table growth because prefixes no lon
 > CIDR introduced variable-length subnet masks, which allowed more efficient IP address allocation and reduced the growth rate of routing tables.  
 
 B. In an Internet forwarding table with CIDR, there can only be one unique matching entry for any given IP address.
-> This is incorrect. In CIDR-based forwarding, multiple entries may match a given IP address, and the router selects the longest prefix match.  
+> This is incorrect. In CIDR-based forwarding, multiple entries may match a given IP address, and the router selects the longest prefix match.
+
 C. The prefix length for a CIDR prefix can be anywhere in the range from 0 to 32 bits. ✅
 > This is correct. CIDR supports prefix lengths ranging from 0 to 32 bits, offering flexibility in IP address allocation.
 
