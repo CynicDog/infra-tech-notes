@@ -5042,7 +5042,219 @@ You may need to tune etcd in production depending on your setup. For example, Ku
 
 ### etcd Pod in Kind
 
-
 </details>
 
 </details> 
+
+<details><summary><h2>🧑‍🚀 Software Defined Networking - The University of Chicago (Coursera)</h2></summary>
+
+<details><summary><h3>Module 1 - History and Evolution of Software Defined Networking</h3></summary>
+
+### Software Defined Networking (SDN) Overview
+
+**Definition:**  
+Software Defined Networking (SDN) is a network architecture that separates the **data plane**, which forwards traffic, from the **control plane**, which determines how traffic is routed.
+
+**Key Features:**  
+1. **Separation of Planes:**  
+   - The **data plane** consists of programmable switches.  
+   - The **control plane** consists of controllers and applications that manage traffic forwarding.  
+   - This separation allows centralized control of network behavior via a high-level control program.
+
+2. **Comparison with Conventional Networking:**  
+   - Traditional networks integrate hardware with specific software, limiting flexibility and innovation.  
+   - SDN decouples these components, enabling easier upgrades and customizations.  
+
+3. **Architecture:**  
+   - The **data plane** handles traffic forwarding.  
+   - The **control plane** communicates with the data plane using standardized interfaces like OpenFlow.  
+   - High-level applications manage tasks such as load balancing and security.
+
+**Historical Context:**  
+- SDN was inspired by challenges in configuring distributed networks where independent device-specific configurations led to bugs and unpredictability.  
+- Centralized control points, such as the Routing Control Platform (RCP), simplified network management.  
+- The concept evolved into architectures like the 4D architecture, with distinct layers for data, discovery, dissemination, and decision-making.  
+
+**Infrastructure Components:**  
+1. **Control Plane:**  
+   - Centralized logic for traffic forwarding based on policies.  
+   - Operates independently from hardware devices.  
+2. **Data Plane:**  
+   - Comprises programmable switches controlled by the control plane.
+
+**Advantages of SDN:**  
+1. **Simplified Coordination:** Centralized programs enable easier coordination of network devices.  
+2. **Improved Evolvability:** Decoupling hardware and software allows independent updates and innovations.  
+3. **Enhanced Reasoning:** High-level control programs make network behavior easier to understand and manage.  
+4. **Adoption of Computer Science Principles:** Techniques from software engineering and testing can be applied to networking.  
+
+**Applications:**  
+SDN is utilized in various domains, including data centers, backbone networks, enterprise networks, internet exchange points, and home networks.  
+
+<details><summary>Quiz</summary>
+
+#### Q. Which of the following are true about Classless Interdomain Routing (CIDR)?
+
+A. CIDR slowed the rate of Internet routing table growth because prefixes no longer had to be allocated in fixed-size blocks. ✅ 
+> CIDR introduced variable-length subnet masks, which allowed more efficient IP address allocation and reduced the growth rate of routing tables.  
+
+B. In an Internet forwarding table with CIDR, there can only be one unique matching entry for any given IP address.
+> This is incorrect. In CIDR-based forwarding, multiple entries may match a given IP address, and the router selects the longest prefix match.  
+C. The prefix length for a CIDR prefix can be anywhere in the range from 0 to 32 bits. ✅
+> This is correct. CIDR supports prefix lengths ranging from 0 to 32 bits, offering flexibility in IP address allocation.
+
+D. The only sizes for an IP address allocation before CIDR were 8, 16, or 24 bits.
+> This is incorrect. Before CIDR, IP address allocation was based on Class A, Class B, and Class C addressing, with different divisions between the network and host portions. Classful addressing had more complex rules, with Class A using 8 bits for the network portion, Class B using 16 bits, and Class C using 24 bits. It wasn't just limited to fixed-size blocks.
+
+---
+
+#### Q. Which of the following are true about how DNS lookups work?
+
+A. If your local DNS resolver caches an NS record for google.com for multiple days, all clients who use that DNS resolver will continue using the same IP address to reach Google’s web server until that NS record expires.  
+> This is incorrect. An NS record does not directly resolve to an IP address but points to the authoritative name servers. Cached NS records only ensure that subsequent queries for google.com will be directed to those name servers.
+
+B. An NS-record query for a DNS lookup will return the name(s) of the authoritative name server(s) for that domain. ✅  
+> An NS record provides the names of the authoritative name servers for a domain, which are responsible for providing the domain's IP or other record types.  
+
+C. A DNS A-record query for google.com will only return a single IP address at a time.  
+> This is incorrect. DNS A-record queries often return multiple IP addresses for a domain to support load balancing or redundancy.  
+
+D. All DNS PTR records are maintained by a single organization in-addr.arpa.  
+> This is incorrect. PTR records, used for reverse DNS lookups, are maintained by various organizations, often delegated by IP block owners.  
+
+E. An MX-record query for a DNS lookup will return the IP address of the mail server for that domain.  
+> This is incorrect. An MX record returns the hostname of the mail server, not its IP address. Further queries are needed to resolve the hostname to an IP.  
+
+---
+
+#### Q. Which of the following are true about traffic control with BGP?
+
+A. A network operator can use the BGP local preference attribute to control outbound traffic from his or her AS to a destination. ✅  
+> The **local preference** attribute influences the selection of outbound paths within an AS by prioritizing preferred routes to a destination.  
+
+B. A network operator can use BGP AS path prepending to control outbound traffic from his or her AS to a destination.  
+> This is incorrect. **AS path prepending** is used to manipulate the AS path length seen by external networks, primarily to influence inbound traffic, not outbound traffic.  
+
+C. A network operator can use the BGP local preference attribute to control inbound traffic from his or her AS to a destination.  
+> This is incorrect. The **local preference** attribute is only applicable within an AS and cannot directly influence inbound traffic.  
+
+D. A network operator can use BGP AS path prepending to control inbound traffic from his or her AS to a destination. ✅  
+> **AS path prepending** increases the AS path length for specific routes, making them less attractive to external networks, thereby influencing inbound traffic.  
+
+---
+
+#### Q. Which of the following are true about layering?
+
+A. The transport layer uses port numbers. ✅  
+> This is correct. The **transport layer** (Layer 4) uses **port numbers** to identify specific processes or services running on devices for communication, such as **TCP** and **UDP**.
+
+B. The destination address in the link layer header is always the address of the next layer-3 node along an end-to-end IP path.  
+> This is incorrect. The **link layer** (Layer 2) address is typically the **MAC address** of the device directly connected to the sender or receiver, not necessarily the next hop in the IP path.
+
+C. The network layer has only a single protocol in widespread use today, representing what we call the “narrow waist”. ✅  
+> This is correct. The **network layer** (Layer 3) is commonly dominated by **IP** (Internet Protocol), which acts as the "narrow waist" of the network stack, with a single protocol (IPv4 or IPv6) in widespread use.
+
+D. The network layer guarantees reliable, in-order delivery of packets.  
+> This is incorrect. The **network layer** (Layer 3), particularly **IP**, does not guarantee **reliable, in-order delivery**. These guarantees are handled by higher layers like the **transport layer** (e.g., TCP).
+
+---
+
+#### Q. Which of the following are **not true** about packet switching?
+
+A. Traffic running over a packet-switched network between two endpoints will never be dropped by intermediate nodes along the path. ✅  
+> This is incorrect. **Packet-switched networks** can drop packets if there is congestion or insufficient resources at intermediate nodes.
+
+B. A user of a packet-switched network might occasionally get a “busy signal” if there are too many users on the network. ✅
+> This is incorrect. In a **packet-switched network**, users do not experience "busy signals"; instead, they may experience **increased latency** or **packet drops** during congestion.
+
+C. Traffic running over a packet-switched network between two endpoints will always experience predictable latency. ✅  
+> This is incorrect. **Latency** in packet-switched networks varies depending on congestion, routing, and other dynamic factors, making it unpredictable.
+
+D. Once a connection is established between two endpoints in a packet-switched network, the end-to-end route cannot change, or the connection must be re-established. ✅  
+> This is incorrect. **Packet-switched networks** dynamically route packets, and the route can change without requiring a re-establishment of the connection.
+
+---
+
+#### Q. Which of the following are true about content distribution networks?
+
+A. Content distribution networks typically redirect Web clients to a nearby Web cache by rewriting the IP address of packets sent from the client to the IP address of the nearby Web cache.  
+> This is **incorrect**. **CDNs** usually redirect traffic to nearby caches through **DNS resolution** rather than by rewriting the IP addresses in the packets. The client is directed to a CDN server with a more optimal response time.
+
+B. Content distribution networks can improve the performance that a client sees by reducing the network latency between the client and the content that it is downloading. ✅  
+> This is **correct**. **CDNs** cache content closer to end users, reducing the distance data must travel and **lowering latency**.
+
+C. Content distribution networks can reduce transit expenses for a content provider by enabling much of the provider’s content to be served from a nearby network, sometimes even from a cache that is within the client’s own network. ✅  
+> This is **correct**. By using **distributed caches** at edge locations, **CDNs** can reduce the load on origin servers and minimize **transit costs** by serving content locally.
+
+D. Real-time content such as video streams cannot be distributed from a content distribution network.  
+> This is **incorrect**. **CDNs** can efficiently deliver **real-time content** such as **live video streams** by utilizing adaptive streaming technologies and edge servers to reduce latency and buffering.
+
+---
+
+#### Q. Which of the following are true about 802.11 wireless medium access control?
+
+A. A wireless sender can avoid causing a collision at the receiver by performing a “carrier sense” to determine whether any other sender wants to transmit at the time that it wishes to send a packet.  
+> This is incorrect. **Carrier sense** helps avoid collisions at the sender, but it cannot guarantee the receiver is collision-free due to the **hidden terminal problem**.
+
+B. Disabling RTS/CTS necessarily lowers the effective throughput of the wireless network, since more collisions will occur at the receiver without RTS/CTS enabled.  
+> This is incorrect. While disabling **RTS/CTS** can increase the risk of collisions, it does not necessarily lower throughput because RTS/CTS introduces overhead, and its impact depends on network conditions.
+
+C. Only wireless networks can have collisions at the receiver; such collisions are not possible on wired Ethernet networks.   
+> This is incorrect. Wired Ethernet networks can also experience collisions in older, shared-media setups (e.g., hub-based Ethernet), but these are less common in modern switched networks.
+
+D. Using RTS/CTS (“request to send”, “clear to send”) control reduces the overall achievable throughput of the wireless network. ✅  
+> This is correct. **RTS/CTS** reduces collisions but introduces additional control frame overhead, lowering the network's effective throughput.
+
+---
+
+#### Q. Which of the following are true about video streaming?
+
+A. A larger playout buffer at the client allows the client more time to recover from lost packets. ✅  
+> This is correct. A larger **playout buffer** enables the client to smooth out any interruptions due to packet loss, helping maintain continuous playback.
+
+B. Since UDP provides no reliable delivery guarantees, a video streaming application that uses UDP as its transport cannot recover from any packet loss in the video stream.  
+> This is incorrect. **UDP** does not guarantee delivery, but a video streaming application can implement its own error recovery mechanisms, such as forward error correction or packet retransmission, to recover from some packet loss.
+
+C. Using TCP for video streaming could result in larger delays between transmission and playout than streaming the same video with UDP. ✅  
+> This is correct. **TCP** introduces additional overhead due to connection establishment, congestion control, and retransmission, leading to **larger delays** compared to **UDP**, which is faster but less reliable.
+
+D. Using UDP to stream a video instead of TCP is appropriate if the client is more concerned about low delay and interactivity than it does about receiving a high-quality stream. ✅  
+> This is correct. **UDP** is often used for **real-time streaming** (e.g., video, VoIP) because it prioritizes **low latency** over reliability, which is beneficial for interactive applications, even if it results in some packet loss.
+
+---
+
+#### Q. Which of the following are true about TCP?
+
+A. A TCP sender controls its sending rate by adjusting the number of unacknowledged packets that can be sent over the network at any time. ✅ 
+> This is correct. **TCP** uses a **sliding window** mechanism to control its sending rate. The sender can only send as many packets as the receiver's advertised window and the congestion window allow.
+
+B. TCP’s congestion avoidance algorithm causes the sender to reduce its sending rate by a factor of two when it sees a packet loss. ✅  
+> This is correct. **TCP** employs **congestion control** mechanisms like **slow start** and **congestion avoidance**, where it reduces the sending rate by half (multiplicative decrease) when it detects packet loss, typically through **timeout** or **duplicate acknowledgments**.
+
+C. A TCP sender and receiver use a “three-way hand shake” both to setup and to terminate the TCP connection.  
+> This is incorrect. The **three-way handshake** is used to **establish** a **TCP connection**, not to terminate it. The connection termination is performed using a **four-way handshake**.
+
+D. TCP guarantees that the receiver sees the same in-order stream of bytes that the sender transmitted. ✅  
+> This is correct. **TCP** provides **reliable, in-order delivery** of data, ensuring that the receiver receives the bytes in the exact order they were sent by the sender, even if packets are delayed or lost and retransmitted.
+
+---
+
+#### Q. Which of the following are true about the denial of service attacks (and defenses)?
+
+A. In a “SYN Flood” attack, each TCP SYN packet that a victim receives causes it to set up TCP connection state. ✅  
+> This is correct. In a **SYN flood** attack, the attacker sends numerous **SYN packets** to the victim with a **spoofed** source IP address. The victim attempts to establish TCP connections but is unable to complete them, consuming its resources and leaving it in a half-open state.
+
+B. If every network on the Internet performed stateless ingress filtering to defend against source IP spoofing, the DNS reflection attack would not work. ✅ 
+> This is correct. Stateless ingress filtering helps prevent source IP spoofing by checking that packets entering a network have a source IP address that matches the network from which they were received. In the case of a DNS reflection attack, this filtering would prevent attackers from sending DNS queries with spoofed source IP addresses (i.e., victim addresses), making it ineffective.
+
+C. A “DNS Reflection” attack requires the attacking client to “spoof” the source IP address of the packet containing the DNS request. ✅  
+> This is correct. In a **DNS reflection** attack, the attacker **spoofs** the source IP address of the DNS request to be that of the victim. The DNS server then responds to the victim, overwhelming it with unsolicited traffic.
+
+D. If every network on the Internet performed stateless egress filtering to defend against source IP address spoofing, the DNS reflection attack could not be carried out.  
+> This is incorrect. **Stateless egress filtering** ensures that packets leaving a network do not have a source IP address that was not assigned within the network. However, **DNS reflection** attacks can still occur even with egress filtering because the attacker is not directly sending packets from its own IP but instead using the victim's IP in the spoofed request.
+
+</details>
+
+</details>
+
+</details>
