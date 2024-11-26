@@ -5093,7 +5093,7 @@ SDN is utilized in various domains, including data centers, backbone networks, e
 
 <details><summary><h3>Quiz</h3></summary>
 
-#### Q. Which of the following are true about Classless Interdomain Routing (CIDR)?
+### Q. Which of the following are true about Classless Interdomain Routing (CIDR)?
 
 A. CIDR slowed the rate of Internet routing table growth because prefixes no longer had to be allocated in fixed-size blocks. ✅ 
 > CIDR introduced variable-length subnet masks, which allowed more efficient IP address allocation and reduced the growth rate of routing tables.  
@@ -5109,7 +5109,7 @@ D. The only sizes for an IP address allocation before CIDR were 8, 16, or 24 bit
 
 ---
 
-#### Q. Which of the following are true about how DNS lookups work?
+### Q. Which of the following are true about how DNS lookups work?
 
 A. If your local DNS resolver caches an NS record for google.com for multiple days, all clients who use that DNS resolver will continue using the same IP address to reach Google’s web server until that NS record expires.  
 > This is incorrect. An NS record does not directly resolve to an IP address but points to the authoritative name servers. Cached NS records only ensure that subsequent queries for google.com will be directed to those name servers.
@@ -5128,7 +5128,7 @@ E. An MX-record query for a DNS lookup will return the IP address of the mail se
 
 ---
 
-#### Q. Which of the following are true about traffic control with BGP?
+### Q. Which of the following are true about traffic control with BGP?
 
 A. A network operator can use the BGP local preference attribute to control outbound traffic from his or her AS to a destination. ✅  
 > The **local preference** attribute influences the selection of outbound paths within an AS by prioritizing preferred routes to a destination.  
@@ -5144,7 +5144,7 @@ D. A network operator can use BGP AS path prepending to control inbound traffic 
 
 ---
 
-#### Q. Which of the following are true about layering?
+### Q. Which of the following are true about layering?
 
 A. The transport layer uses port numbers. ✅  
 > This is correct. The **transport layer** (Layer 4) uses **port numbers** to identify specific processes or services running on devices for communication, such as **TCP** and **UDP**.
@@ -5160,7 +5160,7 @@ D. The network layer guarantees reliable, in-order delivery of packets.
 
 ---
 
-#### Q. Which of the following are **not true** about packet switching?
+### Q. Which of the following are **not true** about packet switching?
 
 A. Traffic running over a packet-switched network between two endpoints will never be dropped by intermediate nodes along the path. ✅  
 > This is incorrect. **Packet-switched networks** can drop packets if there is congestion or insufficient resources at intermediate nodes.
@@ -5176,7 +5176,7 @@ D. Once a connection is established between two endpoints in a packet-switched n
 
 ---
 
-#### Q. Which of the following are true about content distribution networks?
+### Q. Which of the following are true about content distribution networks?
 
 A. Content distribution networks typically redirect Web clients to a nearby Web cache by rewriting the IP address of packets sent from the client to the IP address of the nearby Web cache.  
 > This is **incorrect**. **CDNs** usually redirect traffic to nearby caches through **DNS resolution** rather than by rewriting the IP addresses in the packets. The client is directed to a CDN server with a more optimal response time.
@@ -5192,7 +5192,7 @@ D. Real-time content such as video streams cannot be distributed from a content 
 
 ---
 
-#### Q. Which of the following are true about 802.11 wireless medium access control?
+### Q. Which of the following are true about 802.11 wireless medium access control?
 
 A. A wireless sender can avoid causing a collision at the receiver by performing a “carrier sense” to determine whether any other sender wants to transmit at the time that it wishes to send a packet.  
 > This is incorrect. **Carrier sense** helps avoid collisions at the sender, but it cannot guarantee the receiver is collision-free due to the **hidden terminal problem**.
@@ -5208,7 +5208,7 @@ D. Using RTS/CTS (“request to send”, “clear to send”) control reduces th
 
 ---
 
-#### Q. Which of the following are true about video streaming?
+### Q. Which of the following are true about video streaming?
 
 A. A larger playout buffer at the client allows the client more time to recover from lost packets. ✅  
 > This is correct. A larger **playout buffer** enables the client to smooth out any interruptions due to packet loss, helping maintain continuous playback.
@@ -5224,7 +5224,7 @@ D. Using UDP to stream a video instead of TCP is appropriate if the client is mo
 
 ---
 
-#### Q. Which of the following are true about TCP?
+### Q. Which of the following are true about TCP?
 
 A. A TCP sender controls its sending rate by adjusting the number of unacknowledged packets that can be sent over the network at any time. ✅ 
 > This is correct. **TCP** uses a **sliding window** mechanism to control its sending rate. The sender can only send as many packets as the receiver's advertised window and the congestion window allow.
@@ -5240,7 +5240,7 @@ D. TCP guarantees that the receiver sees the same in-order stream of bytes that 
 
 ---
 
-#### Q. Which of the following are true about the denial of service attacks (and defenses)?
+### Q. Which of the following are true about the denial of service attacks (and defenses)?
 
 A. In a “SYN Flood” attack, each TCP SYN packet that a victim receives causes it to set up TCP connection state. ✅  
 > This is correct. In a **SYN flood** attack, the attacker sends numerous **SYN packets** to the victim with a **spoofed** source IP address. The victim attempts to establish TCP connections but is unable to complete them, consuming its resources and leaving it in a half-open state.
