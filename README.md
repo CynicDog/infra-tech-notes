@@ -1044,7 +1044,7 @@ Browsers authenticate your site's security and exchange encrypted data during a 
 </details>
 
 <details>
-<summary><h2>⚓ Kubernetes for Developers</h2></summary>
+<summary><h2>🔧 Kubernetes for Developers</h2></summary>
 <details>
 <summary><h3>CH3. Deploying to Kubernetes</h3></summary>
 
