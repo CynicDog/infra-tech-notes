@@ -5042,6 +5042,60 @@ You may need to tune etcd in production depending on your setup. For example, Ku
 
 ### etcd Pod in Kind
 
+When using KIND (Kubernetes IN Docker), the etcd service is deployed as a pod. Below are some useful commands to check the health and status of the etcd service in a KIND environment.
+ 
+#### 1. **Opening a shell in the etcd pod:**
+Accessing the etcd pod with `kubectl exec` lets you run commands directly inside the container for troubleshooting and configuration.
+
+```bash
+root@calico-ingress-control-plane:/# kubectl exec -it pod/etcd-calico-ingress-control-plane -n kube-system -- sh
+```
+
+#### 2. **Checking etcd health:**
+The `endpoint health` command checks if etcd is healthy. A message that reads like `'127.0.0.1:2379 is healthy'` confirms it's running fine.
+
+```bash
+sh-5.2# ETCDCTL_API=3 etcdctl \
+	--cacert /etc/kubernetes/pki/etcd/ca.crt \
+	--key /etc/kubernetes/pki/etcd/server.key \
+	--cert /etc/kubernetes/pki/etcd/server.crt \
+	endpoint health
+```
+
+#### 3. **Checking etcd endpoint status:**
+The `endpoint status` command provides detailed stats like version, DB size, and leader status, essential for monitoring etcd performance.
+
+```bash
+sh-5.2# ETCDCTL_API=3 etcdctl \
+	--cacert /etc/kubernetes/pki/etcd/ca.crt \
+	--key /etc/kubernetes/pki/etcd/server.key \
+	--cert /etc/kubernetes/pki/etcd/server.crt \
+	--write-out=table \
+	endpoint status 
+```
+
+#### 4. **Listing etcd members:**
+The `member list` command shows all etcd nodes in the cluster, helping you check membership and status.
+
+```bash
+sh-5.2# ETCDCTL_API=3 etcdctl \
+	--cacert /etc/kubernetes/pki/etcd/ca.crt \
+	--key /etc/kubernetes/pki/etcd/server.key \
+	--cert /etc/kubernetes/pki/etcd/server.crt \
+	member list
+```
+
+#### 5. **Listing keys in etcd:**
+Use `get` with `--keys-only` to list the keys under `/registry/pods`, helpful for inspecting Kubernetes data stored in etcd.
+```bash
+sh-5.2# ETCDCTL_API=3 etcdctl \
+	--cacert /etc/kubernetes/pki/etcd/ca.crt \
+	--key /etc/kubernetes/pki/etcd/server.key \
+	--cert /etc/kubernetes/pki/etcd/server.crt \
+	--prefix --keys-only \
+	get /registry/pods 
+```
+
 </details>
 
 </details> 
