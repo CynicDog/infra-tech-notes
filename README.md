@@ -5538,18 +5538,130 @@ The history of SDN highlights the delicate balance between *vision* and *pragmat
 <details><summary><h3>Tutorial</h3></summary>
 
 #### Install VirtualBox 
-> Install VirtualBox to create and manage virtual machines on your system.  
+Install VirtualBox at [https://www.virtualbox.org/wiki/Downloads](https://www.virtualbox.org/wiki/Downloads) to create and manage virtual machines on your system.  
 
 #### Install Vagrant 
-> Install Vagrant to automate the provisioning and management of virtual machine environments.
+Install Vagrant at [https://developer.hashicorp.com/vagrant/install?product_intent=vagrant](https://developer.hashicorp.com/vagrant/install?product_intent=vagrant) to automate the provisioning and management of virtual machine environments.
 
+#### Clone a course project repository 
+```bash
+PS C:\Users\cynicdog> git clone https://github.com/noise-lab/Coursera-SDN.git && cd Coursera-SDN 
+```
 
-### 
+#### Copy the course virtual machine image 
+```bash
+PS C:\Users\cynicdog\Coursera-SDN> vagrant up
+```
 
+#### Connect to the image 
+```bash
+PS C:\Users\cynicdog\Coursera-SDN> vagrant ssh 
+```
+
+#### Install mininet 
+```
+vagrant@coursera-sdn:~$ sudo apt-get mininet 
+```
+
+#### Exit the virtual machine 
+```
+vagrant@coursera-sdn:~$
+PS C:\Users\cynicdog\Coursera-SDN> vagrant halt 
+```
+ 
 </details>
 
 <details><summary><h3>Quiz</h3></summary>
 
+### Q. Which of the following constituted advantages to AT&T's elimination of in-band signaling from the phone network in the 1980s?
+
+A. **Introduction of new services** ✅  
+> **Correct.** Eliminating in-band signaling allowed AT&T to introduce new services like 800 number routing, which required separate, out-of-band signaling channels to be effective. This separation made it easier to innovate with new telephony services.
+
+B. **Easier configuration and management**  
+> **Incorrect.** While eliminating in-band signaling offered benefits in flexibility, the change itself did not directly simplify configuration or management. In fact, it introduced the need for more sophisticated signaling systems, such as SS7 (Signaling System 7), which required careful configuration.
+
+C. **Reduction of expenditures** ✅  
+> **Correct.** Removing in-band signaling allowed for more efficient use of the available bandwidth and infrastructure, potentially lowering costs over time. Additionally, by centralizing and automating signaling processes, operational costs were reduced.
+
+D. **Improved security**  
+> **Incorrect.** Eliminating in-band signaling didn't directly improve security. While moving signaling traffic to out-of-band systems might reduce some risks, security improvements were not a primary advantage.
+
+---
+
+### Q. What types of functions were enabled by active networks?
+
+A. Code running on end hosts (e.g., machines sending and receiving packets) could modify packet contents.  
+> Incorrect. Active networks enabled programmability, allowing end hosts to modify packet contents dynamically, but they primarily focused on network nodes like routers and switches for packet processing.
+
+B. Code installed on nodes in the network (e.g., at routers and switches) could process packets. ✅  
+> Correct. Active networks allowed network nodes like routers and switches to execute custom code, providing flexibility in packet processing.
+
+C. Packets carrying code in the payload could be executed on intermediate nodes in the network (e.g., routers, switches). ✅  
+> Correct. Active networks introduced the concept of executable code within packets, enabling intermediate nodes to execute the code and perform network functions.
+
+D. A single node in the network could perform more than one function on a packet or stream of packets (e.g., firewalling, followed by load balancing). ✅  
+> Correct. Active networks allowed nodes to perform multiple functions on packets, such as combining firewalling with load balancing.
+
+E. All routers in the network needed to support active networks for active networks to be deployable.  
+> Incorrect. Active networks could be implemented in a partial manner, and not all routers needed to support active network functionalities for the system to be deployable.
+
+--- 
+
+### Q. Which of the following is true about network virtualization?
+
+A. Network virtualization allows multiple service providers to share the same underlying physical infrastructure. ✅  
+> Correct. Network virtualization enables multiple tenants or service providers to operate independently while sharing the same physical network resources.
+
+B. Network virtualization was invented in the late 2000s to support the migration of virtual machines in data centers.  
+> Incorrect. Network virtualization existed before the late 2000s and was not specifically invented for virtual machine migration; it has broader applications, including supporting network slicing and multi-tenancy.
+
+C. Virtual networks can be realized by dividing switch forwarding tables based on fields in the packet header (e.g., IP address and port). ✅  
+> Correct. Network virtualization often uses fields in packet headers, such as IP addresses and ports, to isolate and manage virtual networks within shared physical infrastructure.
+
+D. Network virtualization requires every router and switch in the network to run custom technology supporting virtualization.  
+> Incorrect. While network virtualization may benefit from specific support in switches and routers, it does not mandate that every device in the network be customized.
+
+E. Network virtualization requires the instantiation of virtual machines at each intermediate node (e.g., switch, router) in the network.  
+> Incorrect. Network virtualization does not require virtual machines at intermediate nodes; it can be implemented using software-defined networking (SDN) or other techniques that do not rely on virtual machines.
+
+--- 
+
+### Q. Which of the following are true about various systems developed for central control of packet-switched networks?
+
+A. The RCP could be deployed within a single ISP network, without coordination across multiple ISPs. ✅  
+> Correct. The Routing Control Platform (RCP) was designed to operate within a single ISP network and did not require coordination across multiple ISPs.
+
+B. The OpenFlow protocol requires vendors to expose the details of how they implement flow table maintenance in their switches.  
+> Incorrect. OpenFlow abstracts the details of flow table maintenance from the vendors, allowing different switches to support OpenFlow without exposing proprietary implementations.
+
+C. Ethane's initial goal was to support authentication of hosts in enterprise networks. ✅  
+> Correct. Ethane was developed with the aim of providing a secure framework for host authentication in enterprise networks.
+
+D. The FORCES protocol is deployed on most major routers and switches today.  
+> Incorrect. The FORCES protocol is not widely deployed on major routers and switches today; it was still experimental and not broadly adopted in practice.
+
+E. The Routing Control Platform requires changes to existing routers to support central control.  
+> Incorrect. The Routing Control Platform (RCP) did not require significant changes to existing routers but instead worked within the existing infrastructure with some integration.
+
+--- 
+
+### Q. Which three artifacts and lessons that active networks affected the development of software-defined networks?
+
+A. **centralized control**  
+> **Incorrect.** Active networks were not primarily focused on centralized control. They emphasized programmability and flexibility at the network nodes, which is different from the centralized control architecture that SDN uses.
+
+B. **programmable functions** ✅  
+> **Correct.** Active networks introduced the concept of **programmable functions** at the network nodes (e.g., routers, switches), enabling the dynamic modification of packets and routing. This programmability influenced the development of SDN, where network functions are also made programmable.
+
+C. **packet headers** ✅  
+> **Correct.** Active networks allowed for more flexible processing of packet headers, influencing SDN's ability to manipulate packet headers dynamically for better control and management of network traffic.
+
+D. **demultiplexing** ✅  
+> **Correct.** Active networks introduced flexible packet processing, which led to **demultiplexing** techniques in SDN. This allows packets to be processed based on multiple criteria, enabling more efficient traffic management and routing in SDN.
+
+E. **distributed state management**  
+> **Incorrect.** While active networks dealt with node programmability, the concept of **distributed state management** is more closely associated with SDN, where centralized control is used to manage and distribute state information across the network. Active networks were not specifically focused on distributed state management.
 
 </details>
 
