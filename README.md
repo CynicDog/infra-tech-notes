@@ -5537,33 +5537,33 @@ The history of SDN highlights the delicate balance between *vision* and *pragmat
 
 <details><summary><h3>Tutorial</h3></summary>
 
-#### Install VirtualBox 
+### Install VirtualBox 
 Install VirtualBox at [https://www.virtualbox.org/wiki/Downloads](https://www.virtualbox.org/wiki/Downloads) to create and manage virtual machines on your system.  
 
-#### Install Vagrant 
+### Install Vagrant 
 Install Vagrant at [https://developer.hashicorp.com/vagrant/install?product_intent=vagrant](https://developer.hashicorp.com/vagrant/install?product_intent=vagrant) to automate the provisioning and management of virtual machine environments.
 
-#### Clone a course project repository 
+### Clone a course project repository 
 ```bash
 PS C:\Users\cynicdog> git clone https://github.com/noise-lab/Coursera-SDN.git && cd Coursera-SDN 
 ```
 
-#### Copy the course virtual machine image 
+### Copy the course virtual machine image 
 ```bash
 PS C:\Users\cynicdog\Coursera-SDN> vagrant up
 ```
 
-#### Connect to the image 
+### Connect to the image 
 ```bash
 PS C:\Users\cynicdog\Coursera-SDN> vagrant ssh 
 ```
 
-#### Install mininet 
+### Install mininet 
 ```
 vagrant@coursera-sdn:~$ sudo apt-get mininet 
 ```
 
-#### Exit the virtual machine 
+### Exit the virtual machine 
 ```
 vagrant@coursera-sdn:~$
 PS C:\Users\cynicdog\Coursera-SDN> vagrant halt 
