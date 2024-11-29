@@ -5665,6 +5665,214 @@ E. **distributed state management**
 
 </details>
 
+</details>
+
+<details><summary><h3>Module 2: Control and Data Plane Separation</h3></summary>
+
+## Hands-On with Mininet: Detailed Overview
+
+### Setting Up and Testing Simple Topologies
+
+Mininet allows you to emulate simple network setups to test connectivity. For example, setting up three hosts connected to a single switch involves:
+
+- Launching Mininet using the `mn` command with specific options:
+  - `--topo` to define the topology (`single,3` for one switch with three hosts).
+  - `--test pingall` to test connectivity between all hosts.
+    
+    ```bash
+    vagrant@coursera-sdn:~$ sudo mn --test pingall --topo single,3
+    ```
+    
+- Mininet automatically:
+  1. Creates the network.
+  2. Adds a default controller and the switch.
+  3. Links hosts to the switch and configures them.
+  4. Runs a connectivity test (`pingall`).
+  5. Stops the emulation.
+
+This demonstrates how quickly you can validate network setups with Mininet’s built-in capabilities.
+
+### Mininet Command-Line Options
+
+Mininet provides versatile command-line options for defining networks:
+
+- **`--topo`**:  
+  Specifies the topology at startup, e.g., `single,3` for one switch and three hosts.  
+- **`--switch`**:  
+  Defines the switch type; defaults to Open vSwitch but allows custom switches.  
+- **`--controller`**:  
+  Sets the controller type. By default, Mininet uses a simple hub-like controller.
+
+These options simplify the creation of custom topologies directly from the command line.
+
+### Exploring Topology Types
+
+Mininet supports diverse topologies to suit different use cases:
+
+1. **Minimal Topology**:  
+   - Two hosts and one switch.  
+   - Useful for basic connectivity tests.
+
+     ```bash
+     vagrant@coursera-sdn:~$ sudo mn --topo minimal
+     ```
+
+2. **Linear Topology**:  
+   - Four hosts and four switches in sequence.  
+   - Links each host to its respective switch, with switches connected linearly.
+
+     ```bash
+     vagrant@coursera-sdn:~$ sudo mn --topo linear,4
+     ```
+
+3. **Tree Topology**:  
+   - A hierarchical arrangement of switches and hosts.  
+   - Configurable depth and fan-out.
+
+     ```bash
+     vagrant@coursera-sdn:~$ sudo mn --topo tree,depth=2,fanout=2
+     ```
+
+In all cases, Mininet handles the creation of nodes, links, and network emulation, ensuring consistency and reliability.
+
+### Writing Custom Topologies in Python
+
+Mininet's Python API enables the creation of detailed and flexible network setups. Python scripting allows you to parameterize and automate topology generation.
+
+<details><summary><code>1_linear_topo.py</code></summary>
+<br>
+	
+```python
+#!/usr/bin/python
+from mininet.net import Mininet
+
+def run():
+        net = Mininet()
+
+        # Creating nodes in the network
+        c0 = net.addController()
+        h0 = net.addHost('h0')
+        h1 = net.addHost('h1')
+        s0 = net.addSwitch('s0')
+
+        # Creating links between nodes in network (2-ways)
+        net.addLink(h0, s0)
+        net.addLink(h1, s0)
+
+        # Configuration of IP addresses in interfaces
+        h0.setIP('192.168.1.1', 24)
+        h1.setIP('192.168.1.2', 24)
+
+        net.start()
+        net.pingAll()
+        net.stop()
+
+if __name__ == '__main__':
+        run()
+```
+
+</details>
+
+<details><summary><code>2_linear_topo_advanced.py</code></summary>
+<br>
+
+```python
+#!/usr/bin/python
+
+from mininet.topo import Topo
+from mininet.net import Mininet
+from mininet.util import dumpNodeConnections
+from mininet.log import setLogLevel
+
+class SingleSwitchTopo(Topo):
+
+	"Single Switch connected to `n` hosts"
+	def __init__(self, n=2, **opts):
+
+		# Initialize topology and default options
+		Topo.__init__(self, **opts)
+		switch = self.addSwitch('s1')
+
+		# Register hosts 
+		for h in range(n):
+			host = self.addHost('h%s' % (h + 1))
+			self.addLink(host, switch)
+
+"Create and test a simple network"
+def run():
+	topo = SingleSwitchTopo(n=4)
+	net = Mininet(topo)
+	net.start()
+	dumpNodeConnections(net.hosts)
+	net.pingAll()
+
+	# Run a command on a host `h1` 
+	h1_ifconfig = net.get('h1').cmd('ifconfig')
+	print(h1_ifconfig)
+
+	net.stop()
+
+if __name__ == '__main__':
+	setLogLevel('info')
+	run() 
+```
+
+</details>
+
+
+### Advanced Customization
+
+Mininet supports additional customization options:
+
+1. **Interactive CLI**:  
+   - Add `CLI(net)` to pause the script and enter Mininet's command line.
+   - Explore node connections, run ping tests, or execute system commands (e.g., `ifconfig`).
+
+2. **Custom Node Configuration**:  
+   - Assign IP addresses or other properties using methods like `host.setIP()`.
+
+3. **Link Properties**:  
+   - Control bandwidth, delay, packet loss, and queue sizes using `addLink()` options.
+
+4. **Dynamic Topologies**:  
+   - Use loops or conditional logic in Python to generate complex networks.
+
+### File System Behavior in Mininet
+
+Mininet’s lightweight OS virtualization shares the file system across all virtual hosts:
+
+- Files created or modified by one host are visible to others.
+- File operations follow standard Python methods.
+
+This can be leveraged for inter-host communication or logging within emulated networks.
+
+### Diagnostic Tools
+
+Mininet offers built-in tools to inspect and debug networks:
+
+- **`dumpNodeConnections()`**:  
+  Displays connections of all nodes in the network.  
+- **System commands**:  
+  Run commands like `ifconfig` on specific nodes for detailed information.  
+
+Diagnostics are crucial for understanding and troubleshooting complex setups.
+
+### Summary and Next Steps
+
+This lesson covered:
+
+- Basic and advanced topologies (minimal, linear, tree).
+- Using Mininet’s CLI and Python scripting for setup and testing.  
+- Customizing links, nodes, and controllers.  
+- File system sharing and diagnostic tools.
+
+Future topics will include:
+
+- Advanced performance measurements.
+- Configuring custom controllers and switches.
+- Exploring network behavior under different configurations.
+
+Mininet’s flexibility makes it a powerful tool for network simulation and experimentation.
 
 </details>
 
