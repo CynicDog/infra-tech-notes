@@ -5667,7 +5667,7 @@ E. **distributed state management**
 
 </details>
 
-<details><summary><h3>Module 2: Control and Data Plane Separation</h3></summary>
+<details><summary><h3>Module 2 - Control and Data Plane Separation</h3></summary>
 
 ## Hands-On with Mininet: Detailed Overview
 
