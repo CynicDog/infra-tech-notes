@@ -5986,187 +5986,187 @@ These use cases illustrate how this separation simplifies management, enhances s
 <details><summary><h3>Quiz</h3></summary>
 ### Q. Which of the following are examples of control plane operations?
 
-A. **Computing a shortest path routing tree** ✅  
+A. Computing a shortest path routing tree ✅  
 > **Correct.** The control plane is responsible for making decisions about the network's routing and forwarding, including computing paths such as the shortest path routing tree used by routing protocols.
 
-B. **Determining that a user's MAC address is authentic before allowing it to send traffic on the network** ✅  
+B. Determining that a user's MAC address is authentic before allowing it to send traffic on the network ✅  
 > **Correct.** This is a control plane operation that involves security and authentication mechanisms like port security or 802.1X, which control access to the network.
 
-C. **Load balancing traffic across two output ports based on the hash of each packet's source IP address**  
+C. Load balancing traffic across two output ports based on the hash of each packet's source IP address  
 > **Incorrect.** Load balancing is a data plane operation, as it involves forwarding packets based on real-time traffic conditions and is handled by network devices like switches and routers.
 
-D. **Rate-limiting traffic so that the overall sending rate does not exceed a certain throughput**  
+D. Rate-limiting traffic so that the overall sending rate does not exceed a certain throughput  
 > **Incorrect.** Rate-limiting is a data plane operation, which controls the actual flow of traffic through the network, based on predefined limits or policies.
 
-E. **Determining the forwarding path that satisfies an access control policy** ✅  
+E. Determining the forwarding path that satisfies an access control policy ✅  
 > **Correct.** The control plane is involved in determining the policies for forwarding traffic, such as applying security or access control lists (ACLs) that influence how packets are handled and forwarded in the network.
 
 --- 
 
 ### Q. What are some of the reasons for separating the control and data planes?
 
-A. **Independent evolution of technologies for the data and control plane** ✅  
+A. Independent evolution of technologies for the data and control plane ✅  
 > **Correct.** Separating the control and data planes allows each to evolve independently, enabling different technologies to be optimized for their specific roles. The control plane can focus on network decisions, while the data plane handles fast packet forwarding.
 
-B. **Ability to scale to much larger networks**  
+B. Ability to scale to much larger networks  
 > **Incorrect.** While separating the control and data planes can contribute to more efficient scaling, it's not a primary reason for the separation itself. Other factors like network architecture and the use of distributed control also play a role in scalability.
 
-C. **Easier reasoning about network behavior** ✅  
+C. Easier reasoning about network behavior ✅  
 > **Correct.** With the control and data planes separated, it's easier to understand and manage network behavior. The control plane handles the logic and decision-making, while the data plane handles packet forwarding, simplifying the design and troubleshooting process.
 
-D. **No single point of failure or target of attack** 
+D. No single point of failure or target of attack
 > **Incorrect.** Separation of planes doesn't eliminate a single point of failure. In fact, control plane failures or vulnerabilities could still impact the entire network, although such risks can be mitigated with redundancy and security practices.
 
-E. **Vendor-independence (being able to separate the hardware that is running in the network from the logic that determines network behavior)** ✅  
+E. Vendor-independence (being able to separate the hardware that is running in the network from the logic that determines network behavior) ✅  
 > **Correct.** This separation allows networks to adopt hardware from different vendors while keeping the control logic centralized and independent, leading to greater flexibility and reducing vendor lock-in.
 
 ---
 
 ### Q. What could be the operational steps behind AT&T's IRSCP (a commercial version of the Routing Control Platform) for detecting malicious traffic?
 
-A. **The end host changes its IP address so that it is no longer the target of the attack traffic**  
+A. The end host changes its IP address so that it is no longer the target of the attack traffic  
 > **Incorrect.** While changing the IP address can mitigate the effects of certain attacks, it doesn't directly involve the IRSCP, which focuses on traffic detection and routing changes rather than host-specific solutions.
 
-B. **A measurement system detects an attack, identifies the entry point of the attack, and instructs a controller to install a null route to drop traffic at the entry point where attack traffic is originating** ✅  
+B. A measurement system detects an attack, identifies the entry point of the attack, and instructs a controller to install a null route to drop traffic at the entry point where attack traffic is originating ✅  
 > **Correct.** This describes a valid operational step of the IRSCP. The system detects an attack, locates the entry point, and then drops the malicious traffic at that point by installing a null route to prevent further damage.
 
-C. **A measurement system detects an attack, identifies the entry point of the attack, and instructs a controller to re-route traffic through a deep-packet inspection device**  
+C. A measurement system detects an attack, identifies the entry point of the attack, and instructs a controller to re-route traffic through a deep-packet inspection device  
 > **Incorrect.** While deep-packet inspection can help detect malicious traffic, IRSCP typically focuses on mitigating the attack by dropping traffic through null routing, not rerouting it for inspection.
 
-D. **A victim end host sends an alert to an on-path firewall about the source and nature of an attack, at which point the firewall installs a null route to drop the traffic at the entry point where the attack is originating**  
+D. A victim end host sends an alert to an on-path firewall about the source and nature of an attack, at which point the firewall installs a null route to drop the traffic at the entry point where the attack is originating  
 > **Incorrect.** This operational step involves interaction between a victim and a firewall, but IRSCP doesn't typically rely on victim-end host alerts. The system focuses on network-wide detection and mitigation.
 
-E. **The controller sees all traffic passing through the network, detects an attack, and installs a null route to drop traffic at the entry point where the attack traffic is originating** 
+E. The controller sees all traffic passing through the network, detects an attack, and installs a null route to drop traffic at the entry point where the attack traffic is originating 
 > **Incorrect**. While the controller can detect traffic, it does not have visibility into all traffic passing through the network. The process typically involves measurement systems detecting attacks and the controller taking action based on that input, not by observing all traffic directly.
 
 ---
 
 ### Q. What are some example network management applications that become easier with control and data plane separation?
 
-A. **Improved logging capabilities**  
+A. Improved logging capabilities  
 > **Incorrect.** While logging is an important network function, control and data plane separation doesn't directly impact logging. This is more related to network monitoring and troubleshooting, which is independent of the plane separation.
 
-B. **Forecasting of network capacity** 
+B. Forecasting of network capacity 
 > **Incorrect.** Control plane separation allows for better abstraction of network behavior, making it easier to forecast network capacity as traffic management can be more flexible and centralized.
 
-C. **Customer-controlled egress selection** ✅  
+C. Customer-controlled egress selection ✅  
 > **Correct.** With control and data plane separation, customers can have more influence over routing decisions, including the selection of egress points, as control decisions can be centralized while the data plane handles traffic forwarding.
 
-D. **Planned maintenance of an edge router** ✅  
+D. Planned maintenance of an edge router ✅  
 > **Correct.** Separating the control and data planes enables easier management of network maintenance tasks, such as planned maintenance of edge routers. The control plane can adjust traffic flows without affecting the operation of the data plane directly.
 
-E. **Improved interdomain routing security** ✅  
+E. Improved interdomain routing security ✅  
 > **Correct.** Separation of control and data planes facilitates more effective management of interdomain routing, improving security through better routing protocols and centralized control that can enforce security policies across domains.
 
 --- 
 
 ### Q. What are some of the motivations for using Layer-2 forwarding in a data center?
 
-A. **Better security properties**  
+A. Better security properties  
 > **Incorrect.** Layer-2 forwarding alone doesn't inherently provide better security properties. Security features such as access control lists (ACLs) or encryption are more relevant to improving security.
 
-B. **Better scaling properties**  
+B. Better scaling properties  
 > **Incorrect.** Layer-2 forwarding may not inherently provide better scalability, especially in larger networks where Layer-3 forwarding is often used for more efficient routing and scaling.
 
-C. **Better load balancing properties**  
+C. Better load balancing properties  
 > **Incorrect.** Load balancing is typically a feature of Layer-3 routing protocols or network design techniques, not Layer-2 forwarding. 
 
-D. **Ability to use existing routing protocols to establish paths between hosts**  
+D. Ability to use existing routing protocols to establish paths between hosts  
 > **Incorrect.** Layer-2 forwarding doesn't use traditional Layer-3 routing protocols, as it operates below the IP layer and uses MAC addresses for traffic forwarding, not IP addresses.
 
-E. **Easier configuration/administration, since there is no need to number hosts or configure subnets** ✅  
+E. Easier configuration/administration, since there is no need to number hosts or configure subnets ✅  
 > **Correct.** Layer-2 forwarding simplifies network configuration by eliminating the need to assign IP addresses to hosts or configure subnets, making it easier to set up and manage a network at a basic level.
 
 ---
 
 ### Q. How does the separation of the control and data plane make networking in data centers easier?
 
-A. **A network controller can permit the renumbering of end hosts to have topology-dependent Layer 2 MAC addresses** ✅  
+A. A network controller can permit the renumbering of end hosts to have topology-dependent Layer 2 MAC addresses ✅  
 > **Correct.** The separation allows for dynamic control of host addresses, including the ability to adjust MAC addresses according to the network topology without impacting the data plane, making management more flexible.
 
-B. **The separation allows fewer switches to be used in the data center topology, thus lowering costs**  
+B. The separation allows fewer switches to be used in the data center topology, thus lowering costs  
 > **Incorrect.** While the separation of the planes offers various benefits, it doesn't inherently reduce the number of switches in the data center. The number of switches is determined by the network's scale and design, not the plane separation.
 
-C. **All routes can be controlled and monitored from a central point of control** ✅  
+C. All routes can be controlled and monitored from a central point of control ✅  
 > **Correct.** With the control and data planes separated, all routing decisions can be centralized and managed from a single control point, providing better monitoring and management of network paths.
 
-D. **The control plane allows traffic to be forwarded using Layer 2 addresses, thus allowing automatic load balance across the topology**  
+D. The control plane allows traffic to be forwarded using Layer 2 addresses, thus allowing automatic load balance across the topology  
 > **Incorrect.** The control plane itself doesn't directly perform traffic forwarding or load balancing; it provides the instructions for the data plane to do so. Traffic forwarding based on Layer 2 addresses is typically handled by the data plane, not the control plane.
 
-E. **Virtual machines can be migrated within the network without renumbering entire portions of the network or re-assigning network services to different IP addresses** ✅  
+E. Virtual machines can be migrated within the network without renumbering entire portions of the network or re-assigning network services to different IP addresses ✅  
 > **Correct.** The separation allows for virtual machine migrations to be handled more seamlessly, as the control plane can manage the necessary adjustments without the need for changes in network-wide configurations or IP address assignments.
 
 ---
 
 ### Q. What are some examples of problems that can arise from consistency problems in the control plane, where a network has multiple controller replicas?
 
-A. **Inability to respond to link failures**  
+A. Inability to respond to link failures**
 > **Incorrect.** Controller replicas typically maintain synchronized state, so link failure responses are not directly impacted by consistency issues in the control plane.
 
-B. **Incorrect operation when one controller fails**  
+B. Incorrect operation when one controller fails
 > **Incorrect.** Controller replicas are designed to provide fault tolerance, so one controller's failure usually doesn't cause incorrect operation, as long as the remaining controllers are in sync and take over the responsibilities.
 
-C. **Incorrect security policies** ✅  
+C. Incorrect security policies ✅  
 > **Correct.** Consistency issues between controller replicas can result in mismatched security policies being applied across the network, potentially leading to vulnerabilities or inconsistent enforcement of network security rules.
 
-D. **A flood of traffic at the controller**  
+D. A flood of traffic at the controller  
 > **Incorrect.** This issue is more related to controller resource limits or misconfiguration, not necessarily a result of consistency problems across controller replicas.
 
-E. **Forwarding loops** ✅  
+E. Forwarding loops ✅  
 > **Correct.** Inconsistent control plane data can lead to forwarding loops, where packets circulate endlessly due to conflicting or outdated forwarding information being propagated across the network.
 
 --- 
 
 ### Q. What are some approaches to coping with inconsistency across controller replicas?
 
-A. **Running a consistency protocol across controller replicas** ✅  
+A. Running a consistency protocol across controller replicas. ✅  
 > **Correct.** A consistency protocol ensures that all controller replicas have the same view of the network state, preventing issues caused by inconsistent data.
 
-B. **Keeping a "hot spare" replica that has a complete view of the network's state** ✅  
+B. Keeping a "hot spare" replica that has a complete view of the network's state. ✅  
 > **Correct.** A "hot spare" replica can take over if the active controller fails, ensuring there is no loss of network state and reducing the chance of inconsistency.
 
-C. **Only keeping a subset of the network state in memory at any time**  ✅  
+C. Only keeping a subset of the network state in memory at any time.  ✅  
 > **Correct.** This allows for less potential for inconsistency and is the approach used by Onix.
 
-D. **Having multiple controllers install forwarding table entries on the same router and resolving the conflict on the router itself**  
+D. Having multiple controllers install forwarding table entries on the same router and resolving the conflict on the router itself.  
 > **Incorrect.** Allowing multiple controllers to modify forwarding table entries on the same router can introduce conflicts and complexity, which could worsen consistency problems instead of solving them.
 
-E. **Using different controllers for independent parts of the network** ✅  
+E. Using different controllers for independent parts of the network. ✅  
 > **Correct.** Segmenting the network into parts that are managed by different controllers reduces the scope of potential inconsistency, as each controller only handles a smaller, isolated portion of the network. 
 
 ---
 
 ### Q. What are some approaches to coping with scalability challenges associated with control and data plane separation?
 
-A. **Caching forwarding decisions in the data plane to reduce traffic at the controller.** ✅  
+A. Caching forwarding decisions in the data plane to reduce traffic at the controller. ✅  
 > **Correct.** Caching forwarding decisions locally in the data plane reduces the load on the controller, minimizing traffic and improving scalability.
 
-B. **Eliminating redundant data structures.** ✅  
+B. Eliminating redundant data structures. ✅  
 > **Correct.** Eliminating redundancy in data structures can improve system efficiency, thereby reducing memory usage and improving scalability by optimizing how data is stored and processed.
 
-C. **Only performing control-plane operations for a limited set of network operations.** ✅
+C. Only performing control-plane operations for a limited set of network operations. ✅
 > **Correct.** RCP, for example, only performs control-plane operations for BGP routing.
 
-D. **Running multiple controllers, and having each controller only manage a part of the network.** ✅  
+D. Running multiple controllers, and having each controller only manage a part of the network. ✅  
 > **Correct.** Distributing control-plane responsibilities across multiple controllers allows each one to handle a portion of the network, enhancing scalability by reducing the load on a single controller.
 
-E. **Sending all traffic through the controller to minimize forwarding decisions that the routers and switches must make.**  
+E. Sending all traffic through the controller to minimize forwarding decisions that the routers and switches must make.
 > **Incorrect.** Sending all traffic through the controller would actually increase the load and reduce scalability, as it would centralize traffic management and create bottlenecks.
 
 ---
 
 ### Q. Which property guarantees that each RCP replica continues to install correct forwarding state in the network data plane, even in the case of a partition in the data plane?
 
-A. **Running the network from a single high-level control plane guarantees that network partitions and loops never occur in the first place.**  
+A. Running the network from a single high-level control plane guarantees that network partitions and loops never occur in the first place.
 > **Incorrect.** While a centralized control plane may reduce the chances of network partitions, it does not guarantee that partitions or loops won’t happen, especially in large-scale networks.
 
-B. **The controller cannot see many of the routers in the network anyway, so there is no way for it to install incorrect routing state in the routers that it is not connected to.**  
+B. The controller cannot see many of the routers in the network anyway, so there is no way for it to install incorrect routing state in the routers that it is not connected to.  
 > **Incorrect.** This assumption doesn't solve the issue of network partitions. Even if the controller can't see certain routers, partitions can lead to inconsistent forwarding states in the network.
 
-C. **The controllers are partitioned from the network routers, and the routers will fall back to running a distributed routing protocol.**  
+C. The controllers are partitioned from the network routers, and the routers will fall back to running a distributed routing protocol.  
 > **Incorrect.** If the controller is partitioned, routers may not receive updates, and falling back to distributed routing protocols may not guarantee consistent state across the entire network.
 
-D. **Each controller has a complete view of the portion of the network that it is controlling, and therefore can guarantee consistent routing within that partition.** ✅  
+D. Each controller has a complete view of the portion of the network that it is controlling, and therefore can guarantee consistent routing within that partition. ✅  
 > **Correct.** Since each controller has a complete view of its controlled portion of the network, it can ensure that routing decisions remain consistent even in the case of a network partition.
 
 </details>
