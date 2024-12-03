@@ -5984,6 +5984,7 @@ These use cases illustrate how this separation simplifies management, enhances s
      - Uses distributed protocols to synchronize state across replicas, ensuring consistency across the network.
 
 <details><summary><h3>Quiz</h3></summary>
+
 ### Q. Which of the following are examples of control plane operations?
 
 A. Computing a shortest path routing tree ✅  
