@@ -6172,6 +6172,107 @@ D. Each controller has a complete view of the portion of the network that it is 
 
 </details>
 
+## Routing Control Platform (RCP)
+
+### Introduction  
+The Routing Control Platform (RCP) separates control and data planes to enhance routing in autonomous systems (AS). It uses the Border Gateway Protocol (BGP) as a control channel to compute and manage forwarding decisions centrally. This approach simplifies configuration, improves convergence, and reduces routing loops.
+
+### Problems with BGP  
+> **BGP Issues**:  
+- Converges slowly or fails to converge entirely.  
+- Causes routing loops and misconfigurations.  
+- Makes traffic engineering complex and network-wide policies hard to enforce.  
+
+BGP's fundamental problem is its decentralized nature. Each router operates with partial information, relying on interactions with other routers. Additionally, BGP interacts unpredictably with Interior Gateway Protocols (IGPs), further complicating routing.  
+
+### RCP Overview  
+The RCP addresses BGP’s limitations by centralizing route computation:  
+- Represents an AS as a single logical entity.  
+- Computes routes for all routers in the AS using a complete view of the topology.  
+- Eliminates the need for routers to calculate their own paths.  
+
+In full deployment, RCPs in different ASes communicate to exchange routes, but benefits are achievable even in incremental phases.  
+
+### Deployment Phases  
+
+#### **Phase 1: Single AS Deployment**  
+- A single AS deploys an RCP.  
+- The RCP learns iBGP routes and IGP topology.  
+- Routers follow centrally computed paths, enabling policies like pinning egress points during topology changes.
+
+**Example Application**:  
+Ensuring consistent egress selection during IGP link failures, preventing unintended traffic shifts.  
+
+#### **Phase 2: AS-wide Policy**  
+- The RCP extends to manage eBGP routes from neighboring ASes.  
+- Aggregates or refines IP prefixes for efficient routing.  
+- Resolves overlapping prefixes safely, determining which routers require specific routes.
+
+**Example Application**:  
+Efficient aggregation while avoiding misrouting caused by overly generic prefixes.  
+
+#### **Phase 3: Full Inter-AS Deployment**  
+- All ASes deploy RCPs, communicating via an inter-AS protocol (potentially replacing BGP).  
+- Enables advanced routing applications and innovations in traffic engineering.
+
+**Example Application**:  
+Enhanced network management with flexible routing, replacing BGP for more robust and scalable inter-domain communication.  
+
+### Key Advantages of RCP  
+1. **Simplified Configuration**: Centralized policy management eliminates router-specific configurations.  
+2. **Loop Freedom**: Complete AS-wide views prevent persistent forwarding loops.  
+3. **Faster Convergence**: Routes converge quicker due to consistent decision-making.  
+4. **New Applications**: Supports advanced traffic engineering and other innovations.
+
+By centralizing control and enabling a complete view of AS routes, the RCP transforms routing from a fragmented process to a coherent, efficient system.  
+
+## 4D Network Architecture  
+
+### Introduction  
+The 4D Network Architecture separates traditional router functions into distinct planes to simplify and centralize network management. By isolating decision-making from the data plane, it enables operators to manage networks more effectively and align operations with high-level objectives.  
+
+### Key Goals of 4D Architecture  
+> **Goals**:  
+- Achieve network-wide objectives rather than focusing on individual routers.  
+- Provide centralized visibility for coherent decision-making.  
+- Enable direct control of the data plane, simplifying operations like forwarding and traffic management.  
+
+Traditional distributed routing protocols like OSPF and BGP have limitations in achieving these goals. They rely on routers making independent decisions, leading to inefficiencies, misconfigurations, and slow convergence.  
+
+### Components of the 4D Architecture  
+
+#### **1. Data Plane**  
+- Responsible for forwarding packets based on pre-installed tables.  
+- Implements low-level operations like filtering and buffering.  
+
+#### **2. Dissemination Plane**  
+- Facilitates communication between the decision and data planes.  
+- Disseminates routing information and forwarding rules.  
+
+#### **3. Decision Plane**  
+- Centralized system that computes network-wide paths and policies.  
+- Optimizes traffic engineering, security policies, and failover mechanisms.  
+
+#### **4. Discovery Plane**  
+- Collects real-time information on network topology and traffic.  
+- Feeds data to the decision plane for dynamic adjustments.  
+
+### Example Applications  
+
+#### **Traffic Engineering**  
+The discovery plane collects network load information, and the decision plane computes optimized paths to balance traffic. The dissemination plane ensures routers update their forwarding tables accordingly.  
+
+#### **Access Control**  
+Operators define policies for reachability. The decision plane calculates these policies and updates Access Control Lists (ACLs) across routers. Because the decision plane sees both traffic engineering and access control it can perform decisions that optimize traffic load while still respecting reachability constraints.
+
+### Advantages  
+1. **Simplified Management**: Centralized control replaces distributed protocols, reducing operational complexity.  
+2. **Faster Response**: Centralized intelligence adapts quickly to topology changes or failures.  
+3. **Enhanced Policy Enforcement**: Consistent implementation of traffic engineering and security policies.  
+
+### Impact on Networking  
+The 4D Network Architecture laid the foundation for Software-Defined Networking (SDN). By demonstrating the benefits of separating control and data planes, it inspired innovations that now define modern network management.  
+
 </details>
 
 </details>
