@@ -6471,8 +6471,6 @@ E. **Data plane**
 
 ## The Control Plane Overview 
 
-This module explores the network control plane in detail and includes three lessons. The first lesson covers the fundamentals of the control plane, focusing on OpenFlow v1.0 and its evolution. The second lesson examines examples of SDN controllers, and the final lesson demonstrates how SDN controllers can customize network control. A programming assignment and quizzes complement the module.
-
 ### Introduction to OpenFlow Protocol
 
 OpenFlow separates the control and data planes in a network. The controller communicates with switches through a secure channel and instructs them to update their flow table entries. This enables switches to process traffic flows based on predefined rules.
