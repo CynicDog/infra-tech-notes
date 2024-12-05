@@ -6467,4 +6467,131 @@ E. **Data plane**
 
 </details>
 
+<details><summary><h3>Module 3 - The Control Plane</h3></summary>
+
+## The Control Plane Overview 
+
+This module explores the network control plane in detail and includes three lessons. The first lesson covers the fundamentals of the control plane, focusing on OpenFlow v1.0 and its evolution. The second lesson examines examples of SDN controllers, and the final lesson demonstrates how SDN controllers can customize network control. A programming assignment and quizzes complement the module.
+
+### Introduction to OpenFlow Protocol
+
+OpenFlow separates the control and data planes in a network. The controller communicates with switches through a secure channel and instructs them to update their flow table entries. This enables switches to process traffic flows based on predefined rules.
+
+- The controller centralizes network intelligence.
+- Switches are simplified to forwarding traffic according to flow table entries.
+
+### Key Components of an OpenFlow Switch
+
+OpenFlow defines two main components in a switch:
+
+**Flow Table:**
+- Responsible for packet lookup by matching incoming packet headers to flow table entries.
+- Executes actions specified in the matching entry or forwards unmatched packets to the controller.
+
+**Secure Channel:**
+- Provides communication between the switch and the external controller.
+- Ensures secure transmission of control messages.
+
+When a packet enters a switch, its header is parsed and matched against flow table entries. Packets with no matches are sent to the controller. This approach reduces the controller's workload by processing most packets at the switch level.
+
+### OpenFlow v1.0 Specification
+
+OpenFlow v1.0 defines flow matching fields and associated actions:
+
+**Flow Matching:**
+- Matches packets using a 12-tuple of fields, including MAC addresses, IP addresses, TCP/UDP ports, and VLAN ID.
+- Executes specified actions for matched packets, while unmatched packets are forwarded to the controller.
+
+**Actions:**
+- **Mandatory Actions:**
+  - Forward packets (to specific ports, the controller, or back to the input port).
+  - Drop packets.
+- **Optional Actions:**
+  - Modify packet headers (e.g., VLAN ID, destination IP).
+  - Queue packets for traffic shaping.
+
+The `dpctl` tool facilitates inspection and manipulation of flow tables. For instance, in a Mininet setup, flow table entries can enable host communication by defining bidirectional forwarding rules.
+
+We can instruct Mininet to start a single network with three hosts, all connected by a single switch, where the switch is controlled by a remote controller, as shown here with the `--controller remote` option. We can now use `dpctl` to connect to the controller.
+
+```bash
+vagrant@coursera-sdn:~$ sudo mn --topo single,3 --mac --switch ovsk --controller remote
+```
+> You will see the log `Unable to contact the remote controller at 127.0.0.1:6633`.
+
+The topology details are as below. 
+```bash
+mininet> dump node
+<Host h1: h1-eth0:10.0.0.1 pid=6939>
+<Host h2: h2-eth0:10.0.0.2 pid=6940>
+<Host h3: h3-eth0:10.0.0.3 pid=6942>
+<OVSSwitch s1: lo:127.0.0.1,s1-eth1:None,s1-eth2:None,s1-eth3:None pid=6945>
+<RemoteController c0: 127.0.0.1:6633 pid=6932>
+```
+
+Now let's test the connectivity between hosts:  
+```bash
+mininet> h1 ping -c3 h2
+```
+> The switch has no flow table entries, so it doesn't know how to handle the ping packet arriving from host h1. As a result, the ping is 100% dropped.
+
+We can confirm that the switch has no flow table entries by running the following command:  
+```bash
+vagrant@coursera-sdn:~$ dpctl dump-flows tcp:127.0.0.1:6634
+```
+> This will give us nothing for now, which is supposed to be so. 
+
+Let's fix this by adding a few flow table entries.  
+
+We can use `dpctl` to add a flow table entry that states, if a packet arrives on input port 1, it should be forwarded to output port 2. We will need a similar flow table rule for the reverse direction, stating that if packets arrive on input port 2, they should be sent out on port 1.
+
+This version provides the same information but with refined phrasing and a clearer structure.
+```bash
+vagrant@coursera-sdn:~$ dpctl add-flow tcp:127.0.0.1:6634 in_port=1,actions=output:2
+vagrant@coursera-sdn:~$ dpctl add-flow tcp:127.0.0.1:6634 in_port=2,actions=output:1
+```
+
+Now, check out if the entries are successfully registered on the flow table.
+```bash
+vagrant@coursera-sdn:~$ dpctl dump-flows tcp:127.0.0.1:6634
+stats_reply (xid=0x349fc09d): flags=none type=1(flow)
+  cookie=0, duration_sec=18s, duration_nsec=550000000s, table_id=0, priority=32768, n_packets=0, n_bytes=0, idle_timeout=60,hard_timeout=0,in_port=1,actions=output:2
+  cookie=0, duration_sec=3s, duration_nsec=152000000s, table_id=0, priority=32768, n_packets=0, n_bytes=0, idle_timeout=60,hard_timeout=0,in_port=2,actions=output:1
+```
+
+We can then see the connectivity between hosts as below:
+```bash
+mininet> h1 ping -c3 h2
+PING 10.0.0.2 (10.0.0.2) 56(84) bytes of data.
+64 bytes from 10.0.0.2: icmp_seq=1 ttl=64 time=1.81 ms
+64 bytes from 10.0.0.2: icmp_seq=2 ttl=64 time=0.163 ms
+64 bytes from 10.0.0.2: icmp_seq=3 ttl=64 time=0.125 ms
+```
+
+### Advancements in Later OpenFlow Versions
+
+While OpenFlow v1.0 is foundational, later versions like v1.3 introduce significant enhancements.
+
+**Key Features in OpenFlow v1.3:**
+- **Action Sets:** Enables multiple actions on a packet.
+- **Groups:** Aggregates action sets for shared or multicast operations.
+
+These advancements allow features such as quality of service (QoS), applying MPLS tags, and managing TTL fields, enabling more sophisticated control.
+
+### SDN Control Architectures
+
+Beyond OpenFlow, various SDN control architectures contribute to network programmability and control.
+
+**Examples:**
+- **Juniper Contrail Controller:** Uses XMPP for control, supports Layer 2/3 virtual networks, and contributes to the OpenDaylight community.
+- **Cisco Open Network Environment:** Incorporates centralized controllers, programmable data planes, and virtual overlays for enhanced flexibility.
+
+These architectures illustrate different approaches to SDN, emphasizing the growing importance of programmable networks.
+
+### Conclusion
+
+The lecture introduced the basics of the control plane, focusing on OpenFlow's flow tables, secure channel, and the newer group tables introduced in later versions. Although OpenFlow has evolved, the course emphasizes version 1.0, particularly using tools like `dpctl` and Open vSwitch. The next lesson will explore SDN controllers and their potential for sophisticated network management.
+ 
+</details>
+
 </details>
