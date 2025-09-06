@@ -42,7 +42,6 @@ text="ABCDE"
 echo "${text:3}"      # prints out "DE"
 echo "${text:1:3}"    # prints out "BCD"
 
-B
 ### 009-bash-conditional-expression & 010-bash-conditionals
 
 #### File Test 
