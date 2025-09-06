@@ -3,6 +3,276 @@
 A collection of notes on infrastructure essentials like Linux, Kubernetes, containerization, and networking. 
 
 <details>
+<summary><h2>🤖 Introduction to Bash Scripting</h2></summary>		
+
+> https://github.com/bobbyiliev/introduction-to-bash-scripting
+
+<details><summary><code>devdojo.sh</code></summary>
+
+```bash
+#!/bin/bash
+
+### 003-bash-hello-world 
+echo "Hello World!" 
+
+name="DevDojo"
+echo "Hi there $name !"
+
+### 004-bash-variables 
+echo "Hello, our first passenger $1!" 
+echo "Hello, our second passenger $2!"
+echo "Hello, all of you guys! $@"
+
+### 005-bash-user-input
+read -p "What is your name? " name 
+
+echo "No way, THE $name? What an honor to meet you!"
+
+### 008-bash-array 
+my_array=("Value 1", "Value 2", "Value 3", "Value 4")
+echo ${my_array[1]}     # prints out "Value 1" 
+echo ${my_array[-1]}    # prints out "Value 4"
+echo ${#my_array[@]}    # prints out the number of elements of the array
+
+array=("A", "B", "C", "D", "E")
+echo "${array[@]}"    # prints out "A", "B", "C", "D", E"
+echo "${array[@]:1:3}"  # prints out "B", "C", "D"
+
+text="ABCDE"
+echo "${text:3}"      # prints out "DE"
+echo "${text:1:3}"    # prints out "BCD"
+
+B
+### 009-bash-conditional-expression & 010-bash-conditionals
+
+#### File Test 
+file="devdojo.sh"
+if [[ -f $file ]]; then
+  echo "$file exists and is a regular file."
+else
+  echo "$file does not exist."
+fi
+
+#### String tests 
+read -p "Your name? " name 
+if [[ -n $name ]]; then # True if the length of the string is non-zero. 
+	echo "Hi $name"
+fi 
+
+#### Number Comparison 
+a=10 
+b=20 
+
+if [[ $a -lt $b ]]; then 
+	echo "$a is less than $b"
+fi 
+
+if [[ $b -ge 10 ]]; then
+	echo "$b is greater than or equal to 10"	
+fi
+
+#### Combining Conditions 
+age=25 
+city="Seoul" 
+
+if [[ $age -gt 18 ]] && [[ $city == "Seoul" ]]; then 
+	echo "Adult in Seoul."
+fi 
+
+if [[ $city == "Tokyo" ]] || [[ $city == "Seoul" ]]; then 
+	echo "Lives in Japan or Korea"
+fi
+
+#### Exit Status Checks 
+ls devdojo.sh
+
+if [[ $? -eq 0 ]]; then 
+	echo "Listing was successful!"
+else 
+	echo "File not found"
+fi 
+
+read -p "Enter your age: " age 
+case $age in 
+	[0-9]) 
+		echo "Child"
+		;; 
+
+	1[0-9]) 
+		echo "Teenager"
+		;;
+	*) 
+		echo "Adult"
+		;;
+esac
+
+### 011-bash-loops 
+
+#### For loop 
+for user in "devdojo bobby tony"; do 
+	echo "${user}"
+done 
+
+#### While loop 
+counter=1
+while [[ $counter -le 10 ]]; do 
+	echo $counter 
+	((counter++))
+done
+
+#### While loop application - Password Check 
+read -s -p "Enter your password: " password 
+echo 
+while true; do 
+	if [[ ${#password} -lt 12 ]]; then 
+		echo "Password must be at least 12 characters long."
+		break 
+	elif ! [[ $password =~ [A-Z] ]]; then 
+		echo "Password must contain at least one uppercase letter." 
+		break 
+	elif ! [[ $password =~ [^a-zA-Z0-9] ]]; then 
+		echo "Password must contain at least one special character."
+		break 
+	else 
+		echo "Password is valid!"
+		break 
+	fi 
+done
+
+#### Until loop 
+count=1 
+until [[ $count -gt 10 ]]; do
+	echo $count 
+	((count++))
+done 	
+
+### 012-bash-functions 
+function hello() {
+	echo "Hello, $1!"				
+}
+
+read -p "Name: " name 
+hello $name
+```
+</details>
+
+<details><summary><code>host-checks.sh</code></summary>
+
+```bash
+#!/bin/bash
+
+##
+# BASH menu script for macOS that checks:
+#   - Memory usage
+#   - CPU load
+#   - TCP connections
+#   - Kernel version
+##
+
+server_name=$(hostname)
+
+# Memory check using macOS command
+function memory_check() {
+    echo ""
+    echo "Memory usage on ${server_name} is: "
+    top -l 1 | grep PhysMem
+    echo ""
+}
+
+# CPU load
+function cpu_check() {
+    echo ""
+    echo "CPU load on ${server_name} is: "
+    uptime
+    echo ""
+}
+
+# TCP connections (enhanced)
+function tcp_check() {
+    echo ""
+    echo "TCP connections on ${server_name}:"
+
+    # Total established connections
+    total=$(netstat -an | grep ESTABLISHED | wc -l)
+    echo "Total ESTABLISHED connections: $total"
+
+    echo ""
+    echo "Connections by remote address:"
+    netstat -an | grep ESTABLISHED | awk '{print $5}' | sort | uniq -c | sort -nr
+
+    echo ""
+    echo "Summary by state:"
+    netstat -an | awk '/tcp/ {print $6}' | sort | uniq -c | sort -nr
+    echo ""
+}
+
+# Kernel version
+function kernel_check() {
+    echo ""
+    echo "Kernel version on ${server_name} is: "
+    uname -r
+    echo ""
+}
+
+# Run all checks
+function all_checks() {
+    memory_check
+    cpu_check
+    tcp_check
+    kernel_check
+}
+
+##
+# Color Variables
+##
+green='\e[32m'
+blue='\e[34m'
+red='\e[31m'
+clear='\e[0m'
+
+##
+# Color Functions
+##
+ColorGreen(){
+    echo -e "\033[32m$1\033[0m"
+}
+
+ColorBlue(){
+    echo -e "\033[34m$1\033[0m"
+}
+
+# Interactive menu
+menu(){
+echo -ne "
+My First Menu
+$(ColorGreen '1)') Memory usage
+$(ColorGreen '2)') CPU load
+$(ColorGreen '3)') TCP connections
+$(ColorGreen '4)') Kernel version
+$(ColorGreen '5)') Check All
+$(ColorGreen '0)') Exit
+$(ColorBlue 'Choose an option:') "
+        read a
+        case $a in
+            1) memory_check ; menu ;;
+            2) cpu_check	 	; menu ;;
+            3) tcp_check		; menu ;;
+            4) kernel_check ; menu ;;
+            5) all_checks 	; menu ;;
+            0) exit 0 ;;
+            *) echo -e "${red}Wrong option.${clear}"; menu ;;
+        esac
+}
+
+# Call the menu function
+menu
+```
+
+</details>
+
+</details>
+
+<details>
 <summary><h2>🐧 Linux in Action</h2></summary>
 
 <details>
